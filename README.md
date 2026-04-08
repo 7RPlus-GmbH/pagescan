@@ -14,13 +14,7 @@ Built for the real world: documents photographed on wood tables, under uneven li
 pip install pagescan
 ```
 
-For ML-based corner detection (recommended for best results):
-
-```bash
-pip install pagescan[ml]
-```
-
-Without `[ml]`, pagescan uses contour-based detection which works well but ML handles difficult angles and lighting better.
+Everything is included: ML corner detection, OCR-based auto-rotation, shadow removal, deskew. The ML model (~80MB) is downloaded automatically on first use.
 
 **System requirement:** [Tesseract OCR](https://github.com/tesseract-ocr/tesseract) must be installed separately:
 
@@ -106,7 +100,7 @@ config = ScanConfig(jpeg_quality=85, output_dpi=300)
 
 ## Dependencies
 
-All Python dependencies install automatically. Tesseract OCR is the only manual system requirement (see Installation above).
+All Python dependencies (OpenCV, NumPy, Pillow, img2pdf, onnxruntime, pytesseract) install automatically. Tesseract OCR is the only manual system requirement (see Installation above).
 
 ## License
 

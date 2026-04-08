@@ -11,11 +11,10 @@ from pagescan.config import ScanConfig
 logger = logging.getLogger(__name__)
 
 try:
-    from docaligner import DocAligner
-    _docaligner_model = None
-    HAS_DOCALIGNER = True
+    from pagescan.model import detect_corners_onnx
+    HAS_ML = True
 except ImportError:
-    HAS_DOCALIGNER = False
+    HAS_ML = False
 
 
 def order_corners(pts: np.ndarray) -> np.ndarray:
@@ -114,20 +113,16 @@ def _repair_corners(ordered: np.ndarray, tb_diff: float, lr_diff: float,
 
 
 def detect_corners_ml(image: np.ndarray) -> Optional[np.ndarray]:
-    """Detect document corners using DocAligner deep learning model.
+    """Detect document corners using ONNX heatmap regression model.
 
     Returns ordered corners (TL, TR, BR, BL) or None if detection fails.
     Validates coverage, aspect ratio, and edge parallelism. Attempts
     geometric repair when opposite edges are not parallel.
     """
-    if not HAS_DOCALIGNER:
+    if not HAS_ML:
         return None
 
-    global _docaligner_model
-    if _docaligner_model is None:
-        _docaligner_model = DocAligner()
-
-    result = _docaligner_model(image)
+    result = detect_corners_onnx(image)
     if result is None or not hasattr(result, 'shape') or result.shape != (4, 2):
         return None
 
