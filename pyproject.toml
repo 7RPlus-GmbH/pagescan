@@ -1,0 +1,53 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pagescan"
+version = "0.1.0"
+description = "Turn phone photos of documents into clean, deskewed, print-ready PDFs."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.9"
+authors = [
+    { name = "7R+ GmbH" },
+]
+keywords = ["document", "scanner", "ocr", "perspective", "deskew", "pdf"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Multimedia :: Graphics",
+    "Topic :: Scientific/Engineering :: Image Processing",
+]
+dependencies = [
+    "opencv-python-headless>=4.5",
+    "numpy>=1.20",
+    "Pillow>=9.0",
+    "img2pdf>=0.4",
+]
+
+[project.optional-dependencies]
+ml = ["docaligner"]
+ocr = ["pytesseract"]
+all = ["docaligner", "pytesseract"]
+dev = ["pytest", "pytest-cov"]
+
+[project.scripts]
+pagescan = "pagescan.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/7RPlus-GmbH/pagescan"
+Issues = "https://github.com/7RPlus-GmbH/pagescan/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pagescan"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
