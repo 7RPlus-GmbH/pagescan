@@ -23,7 +23,7 @@ import cv2
 import numpy as np
 
 from pagescan.corners import detect_corners_ml, order_corners
-from pagescan.edges import find_paper_contour
+from pagescan.edges import find_paper_contour, find_document_edges
 from pagescan.config import ScanConfig
 
 logging.basicConfig(level=logging.WARNING, format='%(levelname)s: %(message)s')
@@ -89,12 +89,10 @@ def detect_with_pagescan(image: np.ndarray) -> np.ndarray:
     if corners is not None:
         return order_corners(corners)
 
-    # Fallback: paper contour detection
+    # Fallback: edge-based detection (background-agnostic)
     config = ScanConfig()
-    top, bottom, left, right = find_paper_contour(image, config)
     h, w = image.shape[:2]
-
-    # If contour found something meaningful
+    top, bottom, left, right = find_document_edges(image, config)
     if top > 0 or bottom < h or left > 0 or right < w:
         return np.array([
             [left, top],

@@ -11,7 +11,7 @@ import numpy as np
 
 from pagescan.config import ScanConfig
 from pagescan.corners import detect_corners, order_corners
-from pagescan.edges import trim_edges, find_precise_edges, find_paper_contour
+from pagescan.edges import trim_edges, find_precise_edges, find_paper_contour, find_document_edges
 from pagescan.enhance import remove_shadows, white_balance, enhance_document
 from pagescan.orientation import deskew, auto_rotate
 from pagescan.output import save_pdf, save_image
@@ -24,13 +24,21 @@ logger = logging.getLogger(__name__)
 def _conservative_crop(image: np.ndarray, config: ScanConfig) -> np.ndarray:
     """Crop background edges without perspective transform.
 
-    Uses contour-based paper detection first, then strip-based edge
-    detection as refinement. Two passes for tight results.
+    Tries multiple strategies in order:
+    1. Edge-based detection (background-agnostic, works on any surface)
+    2. Paper contour detection (HSV-based, good for colored backgrounds)
+    3. Precise edge scanning (strip-based, last resort)
     """
     h, w = image.shape[:2]
 
-    top, bottom, left, right = find_paper_contour(image, config)
+    # Primary: edge-based (works on white tables, dark desks, etc.)
+    top, bottom, left, right = find_document_edges(image, config)
     cropped = (top > 0 or bottom < h or left > 0 or right < w)
+
+    if not cropped:
+        # Fallback: HSV paper contour (good for saturated backgrounds like wood)
+        top, bottom, left, right = find_paper_contour(image, config)
+        cropped = (top > 0 or bottom < h or left > 0 or right < w)
 
     if not cropped:
         top, bottom, left, right = find_precise_edges(

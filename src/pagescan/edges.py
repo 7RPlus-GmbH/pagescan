@@ -259,6 +259,102 @@ def find_paper_contour(image: np.ndarray, config: ScanConfig = None,
     return y1, y2, x1, x2
 
 
+def find_document_edges(image: np.ndarray, config: ScanConfig = None) -> Tuple[int, int, int, int]:
+    """Background-agnostic document detection via edge analysis.
+
+    Works on ANY background by detecting the document's sharp edges rather
+    than trying to classify background pixels by color. Uses adaptive
+    thresholding + morphology to find the largest rectangular region.
+
+    Strategy:
+    1. Convert to grayscale, apply bilateral filter (preserve edges, smooth texture)
+    2. Canny edge detection
+    3. Dilate to connect nearby edges into document boundary
+    4. Find largest contour that's roughly rectangular
+    5. Return bounding box (or approximate quad)
+
+    Falls back to find_paper_contour if edge detection finds nothing.
+    """
+    if config is None:
+        config = ScanConfig()
+
+    h, w = image.shape[:2]
+
+    # Bilateral filter: smooths texture while keeping document edges sharp
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    filtered = cv2.bilateralFilter(gray, 9, 75, 75)
+
+    # Adaptive threshold to get strong edges regardless of lighting
+    # This catches document edges on both dark AND light backgrounds
+    thresh = cv2.adaptiveThreshold(filtered, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                                   cv2.THRESH_BINARY, 11, 2)
+    thresh = cv2.bitwise_not(thresh)
+
+    # Also try Canny for crisp edges
+    canny = cv2.Canny(filtered, 30, 100)
+
+    # Combine both edge sources
+    edges = cv2.bitwise_or(thresh, canny)
+
+    # Close gaps to form continuous document boundary
+    # Use rectangular kernel — documents have horizontal/vertical edges
+    k_size = max(5, min(h, w) // 100)
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (k_size, k_size))
+    edges = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, kernel, iterations=3)
+
+    # Remove small noise
+    edges = cv2.morphologyEx(edges, cv2.MORPH_OPEN,
+                             np.ones((3, 3), np.uint8), iterations=2)
+
+    contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if not contours:
+        return find_paper_contour(image, config)
+
+    # Score contours: prefer large, rectangular shapes
+    best_score = 0
+    best_box = None
+
+    for c in contours:
+        area = cv2.contourArea(c)
+        if area < h * w * 0.05:  # at least 5% of image
+            continue
+
+        # Approximate to polygon
+        peri = cv2.arcLength(c, True)
+        approx = cv2.approxPolyDP(c, 0.02 * peri, True)
+
+        # Rectangularity: how close is contour area to bounding rect area?
+        bx, by, bw, bh = cv2.boundingRect(c)
+        rect_area = bw * bh
+        if rect_area < 1:
+            continue
+        rectangularity = area / rect_area
+
+        # Prefer: large area + rectangular shape + 4-sided
+        vertex_bonus = 1.2 if len(approx) == 4 else 1.0
+        score = area * rectangularity * vertex_bonus
+
+        if score > best_score:
+            best_score = score
+            best_box = (bx, by, bw, bh)
+
+    if best_box is None:
+        return find_paper_contour(image, config)
+
+    bx, by, bw, bh = best_box
+
+    # Add margin
+    margin_x = max(10, int(w * 0.01))
+    margin_y = max(10, int(h * 0.01))
+    x1 = max(0, bx - margin_x)
+    y1 = max(0, by - margin_y)
+    x2 = min(w, bx + bw + margin_x)
+    y2 = min(h, by + bh + margin_y)
+
+    logger.info(f"  Edge detection: ({x1},{y1}) {x2 - x1}x{y2 - y1}")
+    return y1, y2, x1, x2
+
+
 def find_receipt_bounds(image: np.ndarray, config: ScanConfig = None) -> Tuple[int, int, int, int]:
     """Find bounding box of a small receipt on a background surface.
 
