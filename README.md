@@ -97,11 +97,22 @@ config = ScanConfig(output_width=2550, output_height=3300)
 config = ScanConfig(jpeg_quality=85, output_dpi=300)
 ```
 
-## Dependencies
+## Prerequisites
 
-OpenCV, NumPy, Pillow, img2pdf, DocAligner, pytesseract
+All Python dependencies (OpenCV, NumPy, Pillow, img2pdf, DocAligner, pytesseract) are installed automatically via `pip install pagescan`.
 
-**System requirement:** [Tesseract OCR](https://github.com/tesseract-ocr/tesseract) must be installed separately.
+The only manual requirement is the **Tesseract OCR** system binary:
+
+```bash
+# Ubuntu / Debian
+sudo apt install tesseract-ocr tesseract-ocr-deu
+
+# macOS
+brew install tesseract
+
+# Windows
+# Download installer from https://github.com/tesseract-ocr/tesseract
+```
 
 ## License
 
