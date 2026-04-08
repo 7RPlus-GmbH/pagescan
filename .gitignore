@@ -38,3 +38,7 @@ Thumbs.db
 
 # pagescan debug output
 pagescan_debug/
+
+# Benchmark data (downloaded separately)
+benchmark/data/
+benchmark/*_sample.jpeg
