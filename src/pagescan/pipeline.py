@@ -132,7 +132,9 @@ def scan(image_path: str, output_path: str = None,
     else:
         document = perspective_transform(image, ml_corners)
         logger.info(f"  Straightened: {document.shape[1]}x{document.shape[0]}")
-        document = trim_edges(document, config)
+        # Light trim only: ML corners already isolate the document precisely.
+        # Default 8% is too aggressive and cuts into page numbers, headers.
+        document = trim_edges(document, config, max_trim_ratio=0.02)
         if ml_pre_rotation != 0:
             undo_k = (4 - ml_pre_rotation) % 4
             document = np.rot90(document, k=undo_k)
