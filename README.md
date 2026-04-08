@@ -14,9 +14,20 @@ Built for the real world: documents photographed on wood tables, under uneven li
 pip install pagescan
 ```
 
-Includes ML corner detection (DocAligner) and OCR-based auto-rotation (Tesseract) out of the box.
+For ML-based corner detection (recommended for best results):
 
-**Note:** Tesseract must be installed separately on your system (`apt install tesseract-ocr` / `brew install tesseract`).
+```bash
+pip install pagescan[ml]
+```
+
+Without `[ml]`, pagescan uses contour-based detection which works well but ML handles difficult angles and lighting better.
+
+**System requirement:** [Tesseract OCR](https://github.com/tesseract-ocr/tesseract) must be installed separately:
+
+```bash
+sudo apt install tesseract-ocr tesseract-ocr-deu   # Ubuntu/Debian
+brew install tesseract                               # macOS
+```
 
 ## Quick Start
 
@@ -93,22 +104,9 @@ config = ScanConfig(output_width=2550, output_height=3300)
 config = ScanConfig(jpeg_quality=85, output_dpi=300)
 ```
 
-## Prerequisites
+## Dependencies
 
-All Python dependencies (OpenCV, NumPy, Pillow, img2pdf, DocAligner, pytesseract) are installed automatically via `pip install pagescan`.
-
-The only manual requirement is the **Tesseract OCR** system binary:
-
-```bash
-# Ubuntu / Debian
-sudo apt install tesseract-ocr tesseract-ocr-deu
-
-# macOS
-brew install tesseract
-
-# Windows
-# Download installer from https://github.com/tesseract-ocr/tesseract
-```
+All Python dependencies install automatically. Tesseract OCR is the only manual system requirement (see Installation above).
 
 ## License
 
