@@ -1,0 +1,123 @@
+\documentclass[a4paper,9pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[german]{babel}
+\usepackage{lmodern}
+\usepackage[left=1.5cm,right=1.5cm,top=1.5cm,bottom=2cm]{geometry}
+\usepackage{eurosym}
+\usepackage{tabularx}
+\usepackage{booktabs}
+\usepackage{parskip}
+\usepackage{xcolor}
+\usepackage{colortbl}
+
+\definecolor{bankred}{RGB}{200,30,30}
+\definecolor{bankgray}{RGB}{240,240,240}
+
+\pagestyle{empty}
+
+\begin{document}
+
+% Header
+\noindent
+{\color{bankred}\rule{\textwidth}{3pt}}
+
+\vspace{0.3cm}
+
+\noindent
+\begin{minipage}[t]{0.6\textwidth}
+{\small
+\textbf{Konto-Nr. 204817563} \quad BLZ 500 502 01 \\
+Frankfurter Volksbank eG \quad UST-ID DE298341076\\
+Kontostand in EUR am 31.01.2026, Auszug Nr. 1
+}
+\end{minipage}%
+\hfill
+\begin{minipage}[t]{0.35\textwidth}
+\raggedleft
+{\small
+Kontoauszug \quad \textbf{1}\\
+Blatt \quad \textbf{1}\\
+Alter Saldo \quad 3.412,78+
+}
+\end{minipage}
+
+\vspace{0.3cm}
+{\color{bankred}\rule{\textwidth}{0.5pt}}
+
+\vspace{0.4cm}
+
+% Transactions
+\begin{tabularx}{\textwidth}{l l X r r}
+\toprule
+\textbf{Datum} & \textbf{Wert} & \textbf{Erl\"auterungen} & \textbf{Betrag} \\
+\midrule
+\rowcolor{bankgray}
+02.01 & 02.01 & DAUERAUFTRAG & \\
+      &       & Empf: Hausverwaltung Schneider \& Partner & \\
+      &       & Miete Januar 2026 Lindenallee 17 & 850,00-- \\[0.15cm]
+03.01 & 03.01 & SEPA-LASTSCHRIFT & \\
+      &       & Einz: Stadtwerke Frankfurt & \\
+      &       & Abschlag Strom/Gas Jan 2026 Kd-Nr 7741923 & 127,50-- \\[0.15cm]
+\rowcolor{bankgray}
+05.01 & 05.01 & GUTSCHRIFT & \\
+      &       & Auftragg: Webdesign Hofmann GmbH & \\
+      &       & Gehalt Januar 2026 & 2.847,63+ \\[0.15cm]
+10.01 & 10.01 & SEPA-LASTSCHRIFT & \\
+      &       & Einz: BARMER & \\
+      &       & Krankenversicherung Jan 2026 VNr T299018 & 214,30-- \\[0.15cm]
+\rowcolor{bankgray}
+12.01 & 12.01 & \"UBERWEISUNG & \\
+      &       & Empf: Maria Bergmann & \\
+      &       & R\"uckzahlung Konzerttickets & 45,00-- \\[0.15cm]
+15.01 & 15.01 & SEPA-LASTSCHRIFT & \\
+      &       & Einz: Telekom Deutschland GmbH & \\
+      &       & Mobilfunk Jan 2026 Kd 3381-992-441 & 39,99-- \\[0.15cm]
+\rowcolor{bankgray}
+18.01 & 18.01 & KARTENZAHLUNG & \\
+      &       & REWE Offenbach Kaiserleistr & \\
+      &       & Referenz 2026011800847231 & 67,43-- \\[0.15cm]
+22.01 & 22.01 & SEPA-LASTSCHRIFT & \\
+      &       & Einz: HUK-COBURG Allgemeine Vers. & \\
+      &       & Kfz-Vers OF-MB 2024 Police 441-928-7 & 48,20-- \\[0.15cm]
+\rowcolor{bankgray}
+28.01 & 28.01 & GUTSCHRIFT & \\
+      &       & Auftragg: Finanzamt Frankfurt III & \\
+      &       & EST-Erstattung 2023 StNr 014/827/01193 & 312,40+ \\[0.15cm]
+31.01 & 31.01 & ABSCHLUSS & \\
+      &       & Kontof\"uhrung \quad 1 x 4,90 & 4,90-- \\
+      &       & Abrechnung 31.01.2026 & \\
+\midrule
+\multicolumn{4}{r}{\textbf{Neuer Saldo \quad 5.175,49+}} \\
+\bottomrule
+\end{tabularx}
+
+\vspace{0.8cm}
+
+\noindent
+\begin{minipage}[t]{0.5\textwidth}
+{\small
+Kontostand in EUR am 31.01.2026, 14:22 Uhr\\[0.2cm]
+Anzahl Anlagen \quad 0\\[0.3cm]
+EING. KONTOUBERZIEHUNG \quad 1.500,00 EUR\\
+Aktuelle Wertstellung \quad +5.175,49 EUR
+}
+\end{minipage}%
+\hfill
+\begin{minipage}[t]{0.4\textwidth}
+\raggedleft
+{\small
+Herrn\\
+Thomas M\"uller\\
+Schillerstra\ss e 42\\
+60313 Frankfurt am Main\\[0.3cm]
+\textbf{IBAN:}\\
+DE89 5005 0201 0204 8175 63\\[0.1cm]
+\textbf{SWIFT-BIC:} HELADEF1822\\
+www.frankfurter-volksbank.de
+}
+\end{minipage}
+
+\vspace{0.5cm}
+{\color{bankred}\rule{\textwidth}{3pt}}
+
+\end{document}

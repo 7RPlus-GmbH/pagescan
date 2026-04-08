@@ -24,25 +24,26 @@ logger = logging.getLogger(__name__)
 def _conservative_crop(image: np.ndarray, config: ScanConfig) -> np.ndarray:
     """Crop background edges without perspective transform.
 
-    Tries multiple strategies in order:
-    1. Edge-based detection (background-agnostic, works on any surface)
-    2. Paper contour detection (HSV-based, good for colored backgrounds)
-    3. Precise edge scanning (strip-based, last resort)
+    Uses the proven fallback chain from the original battle-tested pipeline:
+    1. Paper contour detection (HSV-based, reliable on colored backgrounds)
+    2. Strip-based edge scanning (catches remaining cases)
+    3. Edge-based detection (background-agnostic, last resort for white/beige)
     """
     h, w = image.shape[:2]
 
-    # Primary: edge-based (works on white tables, dark desks, etc.)
-    top, bottom, left, right = find_document_edges(image, config)
+    # Primary: HSV paper contour (proven on 3119 real documents)
+    top, bottom, left, right = find_paper_contour(image, config)
     cropped = (top > 0 or bottom < h or left > 0 or right < w)
 
     if not cropped:
-        # Fallback: HSV paper contour (good for saturated backgrounds like wood)
-        top, bottom, left, right = find_paper_contour(image, config)
+        # Fallback: strip-based edge detection
+        top, bottom, left, right = find_precise_edges(
+            image, config, max_scan_ratio=0.45, min_keep_ratio=0.25)
         cropped = (top > 0 or bottom < h or left > 0 or right < w)
 
     if not cropped:
-        top, bottom, left, right = find_precise_edges(
-            image, config, max_scan_ratio=0.45, min_keep_ratio=0.25)
+        # Last resort: edge-based (for white/beige backgrounds where HSV fails)
+        top, bottom, left, right = find_document_edges(image, config)
         cropped = (top > 0 or bottom < h or left > 0 or right < w)
 
     if not cropped:
@@ -140,9 +141,8 @@ def scan(image_path: str, output_path: str = None,
     else:
         document = perspective_transform(image, ml_corners)
         logger.info(f"  Straightened: {document.shape[1]}x{document.shape[0]}")
-        # Light trim only: ML corners already isolate the document precisely.
-        # Default 8% is too aggressive and cuts into page numbers, headers.
-        document = trim_edges(document, config, max_trim_ratio=0.02)
+        # Standard trim (8% default) — battle-tested on 3119 real documents
+        document = trim_edges(document, config)
         if ml_pre_rotation != 0:
             undo_k = (4 - ml_pre_rotation) % 4
             document = np.rot90(document, k=undo_k)

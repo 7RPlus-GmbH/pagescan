@@ -283,8 +283,10 @@ def main():
     results_dir.mkdir(parents=True, exist_ok=True)
 
     # Filter scanners
-    global SCANNERS
-    SCANNERS = {k: v for k, v in SCANNERS.items() if k in args.scanners}
+    scanners_to_use = {k: v for k, v in SCANNERS.items() if k in args.scanners}
+    # Update module-level SCANNERS so evaluate_image and print_summary see it
+    SCANNERS.clear()
+    SCANNERS.update(scanners_to_use)
 
     extensions = {".jpg", ".jpeg", ".png", ".tiff", ".tif"}
     images = sorted([f for f in images_dir.iterdir()

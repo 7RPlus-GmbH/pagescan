@@ -44,3 +44,7 @@ benchmark/data/
 benchmark/*_sample.jpeg
 benchmark/comparison/images/
 benchmark/comparison/results/
+
+# LaTeX build artifacts
+*.aux
+*.log
