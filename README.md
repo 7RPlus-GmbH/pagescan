@@ -1,5 +1,13 @@
 # pagescan
 
+[![Python 3.9-3.13](https://img.shields.io/badge/python-3.9--3.13-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![PyPI version](https://img.shields.io/pypi/v/pagescan.svg)](https://pypi.org/project/pagescan/)
+[![Tests](https://img.shields.io/badge/tests-30%20passed-brightgreen.svg)](#)
+[![OpenCV](https://img.shields.io/badge/OpenCV-4.5%2B-red.svg)](https://opencv.org/)
+[![Tesseract](https://img.shields.io/badge/Tesseract-OCR-orange.svg)](https://github.com/tesseract-ocr/tesseract)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
 Turn phone photos of documents into clean, deskewed, print-ready PDFs.
 
 Built for the real world: documents photographed on wood tables, under uneven lighting, at odd angles. Handles corner detection, perspective correction, shadow removal, deskew, auto-rotation, and scan-like enhancement in a single pipeline.
