@@ -31,12 +31,12 @@ dependencies = [
     "numpy>=1.20",
     "Pillow>=9.0",
     "img2pdf>=0.4",
+    "docaligner",
+    "pytesseract",
 ]
 
 [project.optional-dependencies]
-ml = ["docaligner"]
-ocr = ["pytesseract"]
-all = ["docaligner", "pytesseract"]
+lite = []
 dev = ["pytest", "pytest-cov"]
 
 [project.scripts]
