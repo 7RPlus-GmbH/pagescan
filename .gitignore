@@ -42,3 +42,5 @@ pagescan_debug/
 # Benchmark data (downloaded separately)
 benchmark/data/
 benchmark/*_sample.jpeg
+benchmark/comparison/images/
+benchmark/comparison/results/
