@@ -259,20 +259,138 @@ def find_paper_contour(image: np.ndarray, config: ScanConfig = None,
     return y1, y2, x1, x2
 
 
+def _find_document_contours(image: np.ndarray):
+    """Shared edge analysis: returns scored contours sorted by quality.
+
+    Strategy: downscale to ~500px (suppresses text, keeps document boundary),
+    then Canny + morphology to find contours. Coordinates are scaled back
+    to original resolution.
+
+    Returns list of (score, contour, approx_polygon) tuples, best first.
+    """
+    h, w = image.shape[:2]
+
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    # Downscale to suppress text edges while keeping document boundary
+    max_dim = 500
+    scale = min(1.0, max_dim / max(h, w))
+    if scale < 1.0:
+        small = cv2.resize(gray, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
+    else:
+        small = gray
+
+    sh, sw = small.shape[:2]
+
+    # Light blur to smooth remaining noise
+    blurred = cv2.GaussianBlur(small, (5, 5), 1)
+
+    # Multi-scale Canny
+    edges1 = cv2.Canny(blurred, 20, 60)
+    edges2 = cv2.Canny(blurred, 40, 120)
+    edges = cv2.bitwise_or(edges1, edges2)
+
+    # Dilate to connect edge fragments into continuous boundary
+    k_size = max(3, min(sh, sw) // 50) | 1
+    kernel = np.ones((k_size, k_size), np.uint8)
+    edges = cv2.dilate(edges, kernel, iterations=3)
+    edges = cv2.erode(edges, kernel, iterations=1)
+
+    contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if not contours:
+        return []
+
+    scored = []
+    for c in contours:
+        area = cv2.contourArea(c)
+        if area < sh * sw * 0.05:
+            continue
+
+        peri = cv2.arcLength(c, True)
+
+        # Try multiple epsilon values to find 4-sided approximation
+        approx = None
+        for eps in [0.015, 0.02, 0.03, 0.04, 0.05, 0.07, 0.10]:
+            a = cv2.approxPolyDP(c, eps * peri, True)
+            if len(a) == 4:
+                # Validate: all angles should be roughly 60-120 degrees
+                pts = a.reshape(4, 2)
+                angles_ok = True
+                for i in range(4):
+                    v1 = pts[(i - 1) % 4] - pts[i]
+                    v2 = pts[(i + 1) % 4] - pts[i]
+                    cos_a = np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2) + 1e-8)
+                    angle = np.degrees(np.arccos(np.clip(cos_a, -1, 1)))
+                    if angle < 50 or angle > 140:
+                        angles_ok = False
+                        break
+                if angles_ok:
+                    approx = a
+                    break
+        if approx is None:
+            approx = cv2.approxPolyDP(c, 0.02 * peri, True)
+
+        bx, by, bw, bh = cv2.boundingRect(c)
+        rect_area = bw * bh
+        if rect_area < 1:
+            continue
+        rectangularity = area / rect_area
+
+        vertex_bonus = 1.5 if len(approx) == 4 else 1.0
+        score = area * rectangularity * vertex_bonus
+
+        # Scale contour and approx back to original resolution
+        if scale < 1.0:
+            c_scaled = (c.astype(np.float32) / scale).astype(np.int32)
+            approx_scaled = (approx.astype(np.float32) / scale).astype(np.int32)
+        else:
+            c_scaled = c
+            approx_scaled = approx
+
+        scored.append((score, c_scaled, approx_scaled))
+
+    scored.sort(key=lambda x: x[0], reverse=True)
+    return scored
+
+
+def detect_corners_contour(image: np.ndarray, config: ScanConfig = None):
+    """Detect document corners via edge-based contour analysis.
+
+    Background-agnostic alternative to ML corner detection. Returns
+    4 corners as np.ndarray shape (4, 2) or None.
+
+    This is the key improvement over bounding-box fallback: returns
+    a proper quadrilateral that matches the document's actual tilt,
+    dramatically improving IoU on tilted documents.
+    """
+    if config is None:
+        config = ScanConfig()
+
+    scored = _find_document_contours(image)
+    if not scored:
+        return None
+
+    # Take the best contour
+    _, contour, approx = scored[0]
+
+    if len(approx) == 4:
+        # Perfect: got a 4-sided polygon
+        corners = approx.reshape(4, 2).astype(np.float32)
+        return corners
+
+    # Fallback: use minimum area rotated rectangle (still a proper quad)
+    rect = cv2.minAreaRect(contour)
+    box = cv2.boxPoints(rect)
+    return box.astype(np.float32)
+
+
 def find_document_edges(image: np.ndarray, config: ScanConfig = None) -> Tuple[int, int, int, int]:
     """Background-agnostic document detection via edge analysis.
 
-    Works on ANY background by detecting the document's sharp edges rather
-    than trying to classify background pixels by color. Uses adaptive
-    thresholding + morphology to find the largest rectangular region.
+    Works on ANY background by detecting the document's sharp edges
+    rather than trying to classify background pixels by color.
 
-    Strategy:
-    1. Convert to grayscale, apply bilateral filter (preserve edges, smooth texture)
-    2. Canny edge detection
-    3. Dilate to connect nearby edges into document boundary
-    4. Find largest contour that's roughly rectangular
-    5. Return bounding box (or approximate quad)
-
+    Returns (top, bottom, left, right) crop coordinates for the pipeline.
     Falls back to find_paper_contour if edge detection finds nothing.
     """
     if config is None:
@@ -280,70 +398,13 @@ def find_document_edges(image: np.ndarray, config: ScanConfig = None) -> Tuple[i
 
     h, w = image.shape[:2]
 
-    # Bilateral filter: smooths texture while keeping document edges sharp
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    filtered = cv2.bilateralFilter(gray, 9, 75, 75)
-
-    # Adaptive threshold to get strong edges regardless of lighting
-    # This catches document edges on both dark AND light backgrounds
-    thresh = cv2.adaptiveThreshold(filtered, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-                                   cv2.THRESH_BINARY, 11, 2)
-    thresh = cv2.bitwise_not(thresh)
-
-    # Also try Canny for crisp edges
-    canny = cv2.Canny(filtered, 30, 100)
-
-    # Combine both edge sources
-    edges = cv2.bitwise_or(thresh, canny)
-
-    # Close gaps to form continuous document boundary
-    # Use rectangular kernel — documents have horizontal/vertical edges
-    k_size = max(5, min(h, w) // 100)
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (k_size, k_size))
-    edges = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, kernel, iterations=3)
-
-    # Remove small noise
-    edges = cv2.morphologyEx(edges, cv2.MORPH_OPEN,
-                             np.ones((3, 3), np.uint8), iterations=2)
-
-    contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    if not contours:
+    scored = _find_document_contours(image)
+    if not scored:
         return find_paper_contour(image, config)
 
-    # Score contours: prefer large, rectangular shapes
-    best_score = 0
-    best_box = None
+    _, contour, approx = scored[0]
+    bx, by, bw, bh = cv2.boundingRect(contour)
 
-    for c in contours:
-        area = cv2.contourArea(c)
-        if area < h * w * 0.05:  # at least 5% of image
-            continue
-
-        # Approximate to polygon
-        peri = cv2.arcLength(c, True)
-        approx = cv2.approxPolyDP(c, 0.02 * peri, True)
-
-        # Rectangularity: how close is contour area to bounding rect area?
-        bx, by, bw, bh = cv2.boundingRect(c)
-        rect_area = bw * bh
-        if rect_area < 1:
-            continue
-        rectangularity = area / rect_area
-
-        # Prefer: large area + rectangular shape + 4-sided
-        vertex_bonus = 1.2 if len(approx) == 4 else 1.0
-        score = area * rectangularity * vertex_bonus
-
-        if score > best_score:
-            best_score = score
-            best_box = (bx, by, bw, bh)
-
-    if best_box is None:
-        return find_paper_contour(image, config)
-
-    bx, by, bw, bh = best_box
-
-    # Add margin
     margin_x = max(10, int(w * 0.01))
     margin_y = max(10, int(h * 0.01))
     x1 = max(0, bx - margin_x)

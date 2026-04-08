@@ -23,7 +23,7 @@ import cv2
 import numpy as np
 
 from pagescan.corners import detect_corners_ml, order_corners
-from pagescan.edges import find_paper_contour, find_document_edges
+from pagescan.edges import detect_corners_contour, find_document_edges
 from pagescan.config import ScanConfig
 
 logging.basicConfig(level=logging.WARNING, format='%(levelname)s: %(message)s')
@@ -80,25 +80,33 @@ def polygon_iou(pts1: np.ndarray, pts2: np.ndarray) -> float:
 
 
 def detect_with_pagescan(image: np.ndarray) -> np.ndarray:
-    """Detect corners using pagescan's ML + fallback pipeline.
+    """Detect corners using pagescan's ML + edge fallback cascade.
 
-    Returns 4 corners as (TL, TR, BR, BL) or None.
+    Cascade:
+    1. ML corners (best quality — proper perspective quad)
+    2. Edge-based quad (contour approxPolyDP or minAreaRect)
+    3. Edge-based bounding box (axis-aligned, worst IoU but high detection rate)
+
+    Returns 4 corners as np.ndarray (4, 2) or None.
     """
-    # Try ML detection first
+    # 1. ML detection
     corners = detect_corners_ml(image)
     if corners is not None:
         return order_corners(corners)
 
-    # Fallback: edge-based detection (background-agnostic)
     config = ScanConfig()
+
+    # 2. Edge-based quad (proper quadrilateral)
+    corners = detect_corners_contour(image, config)
+    if corners is not None:
+        return order_corners(corners)
+
+    # 3. Edge-based bounding box (last resort)
     h, w = image.shape[:2]
     top, bottom, left, right = find_document_edges(image, config)
     if top > 0 or bottom < h or left > 0 or right < w:
         return np.array([
-            [left, top],
-            [right, top],
-            [right, bottom],
-            [left, bottom],
+            [left, top], [right, top], [right, bottom], [left, bottom]
         ], dtype=np.float32)
 
     return None
