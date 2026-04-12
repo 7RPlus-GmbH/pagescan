@@ -51,10 +51,11 @@ class TestCheckQuadDimensions:
         assert _check_quad_dimensions(pts, 1500, 1000) is True
 
     def test_too_narrow(self):
-        # Quad only covers a thin strip
-        pts = np.array([[400, 50], [600, 50], [600, 1400], [400, 1400]], dtype=np.float32)
+        # Quad only covers a very thin strip (< 15% of image short side)
+        pts = np.array([[450, 50], [550, 50], [550, 1400], [450, 1400]], dtype=np.float32)
         assert _check_quad_dimensions(pts, 1500, 1000) is False
 
-    def test_near_square_rejected(self):
+    def test_near_square_accepted(self):
+        # Near-square documents are valid (postcards, notes, etc.)
         pts = np.array([[50, 50], [550, 50], [550, 550], [50, 550]], dtype=np.float32)
-        assert _check_quad_dimensions(pts, 1000, 1000) is False
+        assert _check_quad_dimensions(pts, 1000, 1000) is True

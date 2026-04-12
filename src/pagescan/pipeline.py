@@ -11,7 +11,7 @@ import numpy as np
 
 from pagescan.config import ScanConfig
 from pagescan.corners import detect_corners, order_corners
-from pagescan.edges import trim_edges, find_precise_edges, find_paper_contour, find_document_edges
+from pagescan.edges import trim_edges, find_precise_edges, find_paper_contour, find_document_edges, detect_corners_contour
 from pagescan.enhance import remove_shadows, white_balance, enhance_document
 from pagescan.orientation import deskew, auto_rotate
 from pagescan.output import save_pdf, save_image
@@ -24,44 +24,43 @@ logger = logging.getLogger(__name__)
 def _conservative_crop(image: np.ndarray, config: ScanConfig) -> np.ndarray:
     """Crop background edges without perspective transform.
 
-    Uses the proven fallback chain from the original battle-tested pipeline:
-    1. Paper contour detection (HSV-based, reliable on colored backgrounds)
-    2. Strip-based edge scanning (catches remaining cases)
-    3. Edge-based detection (background-agnostic, last resort for white/beige)
+    Conservative approach: only crop when very confident we're removing
+    background, never document content. Prefers to leave some background
+    rather than risk cutting text.
     """
     h, w = image.shape[:2]
 
-    # Primary: HSV paper contour (proven on 3119 real documents)
+    # Try contour-based perspective correction first (gives best results for tilted docs)
+    contour_corners = detect_corners_contour(image, config)
+    if contour_corners is not None:
+        c_ordered = order_corners(contour_corners)
+        c_area = cv2.contourArea(c_ordered)
+        c_coverage = c_area / (h * w)
+        if 0.05 < c_coverage < 0.95:
+            logger.info(f"  Contour perspective (coverage={c_coverage:.2f})")
+            return perspective_transform(image, contour_corners)
+
+    # Fallback: HSV paper contour detection
     top, bottom, left, right = find_paper_contour(image, config)
     cropped = (top > 0 or bottom < h or left > 0 or right < w)
 
     if not cropped:
-        # Fallback: strip-based edge detection
-        top, bottom, left, right = find_precise_edges(
-            image, config, max_scan_ratio=0.45, min_keep_ratio=0.25)
-        cropped = (top > 0 or bottom < h or left > 0 or right < w)
-
-    if not cropped:
-        # Last resort: edge-based (for white/beige backgrounds where HSV fails)
+        # Try edge-based detection (for white/beige backgrounds)
         top, bottom, left, right = find_document_edges(image, config)
         cropped = (top > 0 or bottom < h or left > 0 or right < w)
 
     if not cropped:
         return image
 
-    logger.info(f"  Conservative trim: T={top} B={h - bottom} L={left} R={w - right}")
-    image = image[top:bottom, left:right]
+    # Safety check: never remove more than 40% of any dimension
+    crop_h = bottom - top
+    crop_w = right - left
+    if crop_h < h * 0.60 or crop_w < w * 0.60:
+        logger.warning(f"  Conservative crop would over-crop ({crop_w}x{crop_h} from {w}x{h}), keeping full image")
+        return image
 
-    # Refinement pass
-    h2, w2 = image.shape[:2]
-    t2, b2, l2, r2 = find_precise_edges(
-        image, config, max_scan_ratio=0.45, min_keep_ratio=0.30)
-    if t2 > 0 or b2 < h2 or l2 > 0 or r2 < w2:
-        logger.info(f"  Refine trim: T={t2} B={h2 - b2} L={l2} R={w2 - r2}")
-        image = image[t2:b2, l2:r2]
-
-    image = trim_edges(image, config)
-    return image
+    logger.info(f"  Conservative crop: T={top} B={h - bottom} L={left} R={w - right}")
+    return image[top:bottom, left:right]
 
 
 def scan(image_path: str, output_path: str = None,
@@ -108,28 +107,17 @@ def scan(image_path: str, output_path: str = None,
         image = np.rot90(image, k=ml_pre_rotation)
         h, w = image.shape[:2]
 
-    # Validate ML corners against paper contour
     if ml_corners is not None:
-        ordered_check = order_corners(ml_corners)
-        ml_w = max(ordered_check[:, 0]) - min(ordered_check[:, 0])
-        ml_h = max(ordered_check[:, 1]) - min(ordered_check[:, 1])
-        pc_t, pc_b, pc_l, pc_r = find_paper_contour(image, config)
-        pc_w, pc_h = pc_r - pc_l, pc_b - pc_t
-        if pc_w * pc_h > ml_w * ml_h * 1.4:
-            logger.info(f"  ML quad ({ml_w:.0f}x{ml_h:.0f}) too small vs "
-                        f"paper ({pc_w}x{pc_h}), using conservative")
-            ml_corners = None
-            if ml_pre_rotation != 0:
-                image = np.rot90(image, k=(4 - ml_pre_rotation) % 4)
-                h, w = image.shape[:2]
-                ml_pre_rotation = 0
-
-    method = 'docaligner' if ml_corners is not None else 'conservative'
+        method = 'docaligner'
+        corners = ml_corners
+    else:
+        method = 'conservative'
+        corners = None
     logger.info(f"  Detection: {method}")
 
-    if config.debug and ml_corners is not None:
+    if config.debug and corners is not None:
         vis = image.copy()
-        pts = order_corners(ml_corners).astype(np.int32)
+        pts = order_corners(corners).astype(np.int32)
         cv2.polylines(vis, [pts], True, (0, 255, 0), 3)
         for pt in pts:
             cv2.circle(vis, tuple(pt), 15, (0, 0, 255), -1)
@@ -139,10 +127,10 @@ def scan(image_path: str, output_path: str = None,
     if method == 'conservative':
         document = _conservative_crop(image.copy(), config)
     else:
-        document = perspective_transform(image, ml_corners)
+        document = perspective_transform(image, corners)
         logger.info(f"  Straightened: {document.shape[1]}x{document.shape[0]}")
-        # Standard trim (8% default) — battle-tested on 3119 real documents
-        document = trim_edges(document, config)
+        # NO aggressive trimming after ML perspective — the ML corners define
+        # the document boundary. Trimming here cuts off actual content.
         if ml_pre_rotation != 0:
             undo_k = (4 - ml_pre_rotation) % 4
             document = np.rot90(document, k=undo_k)
@@ -157,15 +145,8 @@ def scan(image_path: str, output_path: str = None,
     # -- Deskew --
     if config.deskew:
         document, deskew_angle = deskew(document)
-        # Large tilt after ML perspective = bad corners -> retry conservative
-        if abs(deskew_angle) > 8 and method == 'docaligner':
-            logger.info(f"  ML tilt {deskew_angle:.1f} too large, retrying conservative")
-            document = _conservative_crop(image.copy(), config)
-            if config.auto_orient:
-                document = auto_rotate(document)
-            document, _ = deskew(document)
 
-    # -- Quality check --
+    # -- Quality check (informational only, no retries that would over-crop) --
     passed, quality_score, qa_message = check_quality(document, config)
     logger.info(f"  Quality: {quality_score:.2f} - {qa_message}")
 

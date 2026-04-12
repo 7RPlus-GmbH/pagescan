@@ -52,19 +52,13 @@ def _check_quad_dimensions(pts: np.ndarray, h: int, w: int) -> bool:
     hl = np.linalg.norm(pts[3] - pts[0])
     hr = np.linalg.norm(pts[2] - pts[1])
 
-    # Short side must be >= 45% of image short side
+    # Short side must be >= 15% of image short side (very permissive —
+    # better to use ML corners even for small documents than fall back to
+    # conservative crop which over-crops)
     quad_short = min(max(wt, wb), max(hl, hr))
     img_short = min(h, w)
-    if quad_short < img_short * 0.45:
-        logger.debug(f"  ML quad too narrow: {quad_short:.0f} < {img_short * 0.45:.0f}")
-        return False
-
-    # Reject near-square aspect ratios (real documents are portrait or landscape)
-    quad_w = max(wt, wb)
-    quad_h = max(hl, hr)
-    aspect = quad_w / quad_h if quad_h > 0 else 1.0
-    if 0.88 < aspect < 1.15:
-        logger.debug(f"  ML quad nearly square (aspect={aspect:.2f}), likely partial detection")
+    if quad_short < img_short * 0.15:
+        logger.debug(f"  ML quad too narrow: {quad_short:.0f} < {img_short * 0.15:.0f}")
         return False
 
     return True
@@ -129,10 +123,10 @@ def detect_corners_ml(image: np.ndarray) -> Optional[np.ndarray]:
     corners = result.astype(np.float32)
     h, w = image.shape[:2]
 
-    # Coverage validation
+    # Coverage validation — permissive to accept small documents on large backgrounds
     area = cv2.contourArea(corners)
     coverage = area / (h * w)
-    if coverage < 0.10 or coverage > 0.98:
+    if coverage < 0.02 or coverage > 0.99:
         return None
 
     ordered = order_corners(corners)
@@ -140,15 +134,21 @@ def detect_corners_ml(image: np.ndarray) -> Optional[np.ndarray]:
     if not _check_quad_dimensions(ordered, h, w):
         return None
 
-    # Parallelism check
+    # Parallelism check — permissive, better to use slightly imperfect ML corners
+    # than fall back to conservative crop which loses content
     tb_diff, lr_diff = _check_parallel(ordered)
-    if tb_diff <= 10 and lr_diff <= 10:
+    if tb_diff <= 15 and lr_diff <= 15:
         return ordered
 
-    # Attempt repair
+    # Attempt repair for more severe cases
     repaired = _repair_corners(ordered, tb_diff, lr_diff, h, w)
     if repaired is not None:
         return repaired
+
+    # Still accept if not too bad — perspective transform handles moderate skew
+    if tb_diff <= 25 and lr_diff <= 25:
+        logger.info(f"  ML corners moderately skewed (TB={tb_diff:.1f} LR={lr_diff:.1f}), accepting anyway")
+        return ordered
 
     logger.debug(f"  ML corners not parallel: TB={tb_diff:.1f} LR={lr_diff:.1f}")
     return None

@@ -66,15 +66,25 @@ def deskew(image: np.ndarray) -> Tuple[np.ndarray, float]:
     return rotated, median_angle
 
 
+def _ocr_word_score(gray_image: np.ndarray) -> int:
+    """Count high-confidence OCR words as a proxy for correct orientation."""
+    try:
+        import pytesseract
+        from pytesseract import Output
+        data = pytesseract.image_to_data(
+            gray_image, lang='deu', config='--psm 6',
+            output_type=Output.DICT)
+        return sum(1 for c in data['conf'] if int(c) > 50)
+    except Exception:
+        return 0
+
+
 def auto_rotate(image: np.ndarray) -> np.ndarray:
-    """Auto-rotate document to correct orientation using Tesseract OSD.
+    """Auto-rotate document to correct orientation using OCR word scoring.
 
-    Tries all 4 orientations and picks the one where Tesseract confirms
-    text is upright (rotate=0) with highest confidence. Validates 90-degree
-    rotations with OCR word scoring to avoid wrong-direction picks.
-
-    Skips 180-degree rotation (OSD is unreliable for upside-down detection).
-    Falls back to aspect-ratio heuristic if OSD fails entirely.
+    Tests all 4 orientations (0, 90, 180, 270) and picks the one that
+    produces the most high-confidence OCR words. This is more reliable than
+    Tesseract OSD which often fails on colorful or non-text-heavy documents.
 
     Requires pytesseract (optional dependency). Returns image unchanged
     if pytesseract is not installed.
@@ -87,73 +97,46 @@ def auto_rotate(image: np.ndarray) -> np.ndarray:
         return image
 
     h, w = image.shape[:2]
-    scale = min(1.0, 1500 / max(h, w))
-    small = cv2.resize(image, None, fx=scale, fy=scale) if scale < 1.0 else image
+
+    # Prepare a smaller grayscale version for OCR speed
+    ocr_scale = min(1.0, 1000 / max(h, w))
+    small = cv2.resize(image, None, fx=ocr_scale, fy=ocr_scale) if ocr_scale < 1.0 else image
     gray = cv2.cvtColor(small, cv2.COLOR_BGR2GRAY) if small.ndim == 3 else small
 
-    best_k = 0
-    best_conf = -1.0
-    osd_failures = 0
+    # First try OSD (fast) — if it works with high confidence, use it
+    try:
+        osd = pytesseract.image_to_osd(gray, output_type=Output.DICT)
+        osd_rot = osd.get('rotate', 0)
+        osd_conf = osd.get('orientation_conf', 0)
+        if osd_conf >= 5.0 and osd_rot != 0:
+            # OSD is very confident — map rotation to np.rot90 k value
+            k_map = {90: 3, 180: 2, 270: 1}
+            best_k = k_map.get(osd_rot, 0)
+            if best_k != 0:
+                logger.info(f"  Auto-rotating {best_k * 90} CCW (OSD conf={osd_conf:.1f})")
+                return np.rot90(image, k=best_k)
+    except Exception:
+        pass
 
-    for k in [0, 1, 3, 2]:  # original, 90 CCW, 90 CW, 180
+    # OSD failed or low confidence — use OCR word scoring on all 4 orientations
+    scores = {}
+    for k in [0, 1, 2, 3]:
         rotated = np.rot90(gray, k=k) if k != 0 else gray
-        try:
-            osd = pytesseract.image_to_osd(rotated, output_type=Output.DICT)
-            rot = osd.get('rotate', 0)
-            conf = osd.get('orientation_conf', 0)
-            if rot == 0 and conf > best_conf:
-                best_k = k
-                best_conf = conf
-        except Exception:
-            osd_failures += 1
-            continue
+        scores[k] = _ocr_word_score(rotated)
 
-    if best_k != 0 and best_conf > 0.5:
-        # Skip 180 (unreliable)
-        if best_k == 2:
-            logger.debug(f"  Skipping 180 rotation (disabled, conf={best_conf:.1f})")
-        else:
-            # Validate 90-degree direction with OCR word count
-            if best_k in (1, 3):
-                other_k = 3 if best_k == 1 else 1
-                try:
-                    ocr_scale = min(1.0, 1000 / max(gray.shape))
-                    ocr_img = cv2.resize(gray, None, fx=ocr_scale, fy=ocr_scale) if ocr_scale < 1.0 else gray
-                    data_best = pytesseract.image_to_data(
-                        np.rot90(ocr_img, k=best_k), lang='deu', config='--psm 6',
-                        output_type=Output.DICT)
-                    data_other = pytesseract.image_to_data(
-                        np.rot90(ocr_img, k=other_k), lang='deu', config='--psm 6',
-                        output_type=Output.DICT)
-                    score_best = sum(1 for c in data_best['conf'] if int(c) > 50)
-                    score_other = sum(1 for c in data_other['conf'] if int(c) > 50)
-                    if score_other > score_best * 1.2:
-                        logger.info(f"  OCR validates opposite direction: k={other_k} "
-                                    f"({score_other} words) > k={best_k} ({score_best} words)")
-                        best_k = other_k
-                except Exception:
-                    pass
+    best_k = max(scores, key=scores.get)
+    best_score = scores[best_k]
+    current_score = scores[0]
 
-            logger.info(f"  Auto-rotating {best_k * 90} CCW (conf={best_conf:.1f})")
-            image = np.rot90(image, k=best_k)
+    logger.debug(f"  OCR scores: 0°={scores[0]} 90°={scores[1]} 180°={scores[2]} 270°={scores[3]}")
 
-    elif osd_failures >= 3 and w > h * 1.3:
-        # OSD mostly failed + landscape: assume portrait, validate with OCR
-        try:
-            ocr_scale = min(1.0, 1000 / max(gray.shape))
-            ocr_img = cv2.resize(gray, None, fx=ocr_scale, fy=ocr_scale) if ocr_scale < 1.0 else gray
-            data_k1 = pytesseract.image_to_data(
-                np.rot90(ocr_img, k=1), lang='deu', config='--psm 6',
-                output_type=Output.DICT)
-            data_k3 = pytesseract.image_to_data(
-                np.rot90(ocr_img, k=3), lang='deu', config='--psm 6',
-                output_type=Output.DICT)
-            score_k1 = sum(1 for c in data_k1['conf'] if int(c) > 50)
-            score_k3 = sum(1 for c in data_k3['conf'] if int(c) > 50)
-            fallback_k = 1 if score_k1 >= score_k3 else 3
-        except Exception:
-            fallback_k = 1
-        logger.info(f"  Auto-rotating {fallback_k * 90} CCW (aspect {w / h:.1f}:1, OSD failed)")
-        image = np.rot90(image, k=fallback_k)
+    # Only rotate if the best orientation is clearly better than current
+    if best_k != 0 and best_score > current_score * 1.2 and best_score >= 3:
+        logger.info(f"  Auto-rotating {best_k * 90} CCW (OCR: {best_score} words vs {current_score} at 0°)")
+        image = np.rot90(image, k=best_k)
+    elif best_k != 0 and best_score > 0 and current_score == 0:
+        # Current orientation has zero OCR hits but another has some
+        logger.info(f"  Auto-rotating {best_k * 90} CCW (OCR: {best_score} words, current=0)")
+        image = np.rot90(image, k=best_k)
 
     return image

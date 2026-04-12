@@ -25,7 +25,7 @@ MODEL_FILENAME = "fastvit_sa24_h_e_bifpn_256_fp32.onnx"
 MODEL_GDRIVE_ID = "14vUH77v6yGg7zFctUgcT6BzV5Iisg4Dl"
 MODEL_SHA256 = None  # Set after first verified download
 MODEL_SIZE_INFER = (256, 256)
-HEATMAP_THRESHOLD = 0.3
+HEATMAP_THRESHOLD = 0.1
 
 _ort_session = None
 

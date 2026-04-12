@@ -26,6 +26,10 @@ def trim_edges(image: np.ndarray, config: ScanConfig = None,
     Analyzes each edge strip for high-saturation (wood) or dark (shadow)
     pixels and crops inward until clean paper is reached.
 
+    Uses corner-aware trimming: checks triangular corner regions for
+    contamination and trims enough to eliminate them, even if the middle
+    of an edge strip is clean.
+
     Args:
         image: Document image (BGR).
         config: Scan configuration (for HSV ranges).
@@ -45,6 +49,8 @@ def trim_edges(image: np.ndarray, config: ScanConfig = None,
     bg_high = config.background_hsv_high
 
     def is_contaminated(strip_hsv, strip_gray):
+        if strip_hsv.size == 0 or strip_gray.size == 0:
+            return False
         wood = cv2.inRange(strip_hsv, bg_low, bg_high)
         wood_ratio = np.sum(wood > 0) / wood.size
         shadow_ratio = np.sum(strip_gray < 50) / strip_gray.size
@@ -89,6 +95,33 @@ def trim_edges(image: np.ndarray, config: ScanConfig = None,
             right_trim = w - x
         else:
             break
+
+    # Corner-aware trimming: check corner quadrants for contamination
+    # that edge-strip scanning misses (e.g. triangular background from tilt)
+    corner_size_y = min(h // 8, max_trim_y)
+    corner_size_x = min(w // 8, max_trim_x)
+    corner_regions = [
+        (hsv[0:corner_size_y, 0:corner_size_x],
+         gray[0:corner_size_y, 0:corner_size_x], 'TL'),
+        (hsv[0:corner_size_y, w-corner_size_x:w],
+         gray[0:corner_size_y, w-corner_size_x:w], 'TR'),
+        (hsv[h-corner_size_y:h, 0:corner_size_x],
+         gray[h-corner_size_y:h, 0:corner_size_x], 'BL'),
+        (hsv[h-corner_size_y:h, w-corner_size_x:w],
+         gray[h-corner_size_y:h, w-corner_size_x:w], 'BR'),
+    ]
+    for c_hsv, c_gray, label in corner_regions:
+        if is_contaminated(c_hsv, c_gray):
+            # This corner has heavy background — ensure trim reaches it
+            extra = strip_width * 2
+            if label[0] == 'T' and top_trim < extra:
+                top_trim = min(extra, max_trim_y)
+            if label[0] == 'B' and bottom_trim < extra:
+                bottom_trim = min(extra, max_trim_y)
+            if label[1] == 'L' and left_trim < extra:
+                left_trim = min(extra, max_trim_x)
+            if label[1] == 'R' and right_trim < extra:
+                right_trim = min(extra, max_trim_x)
 
     if top_trim > 0 or bottom_trim > 0 or left_trim > 0 or right_trim > 0:
         new_h = h - top_trim - bottom_trim
@@ -221,7 +254,8 @@ def find_paper_contour(image: np.ndarray, config: ScanConfig = None,
     h, w = image.shape[:2]
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
-    paper = cv2.inRange(hsv, (0, 0, 130), (180, 60, 255))
+    # Saturation up to 100 to handle paper under warm indoor lighting
+    paper = cv2.inRange(hsv, (0, 0, 120), (180, 100, 255))
 
     short = min(h, w)
     ks = max(25, short // 60) | 1
