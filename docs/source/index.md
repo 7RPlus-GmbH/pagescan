@@ -35,7 +35,7 @@ That's it. No service account, no API key, no network round-trip. The pre-traine
 - **Tuned for real-world phone photos.** Wood tables, uneven lighting, hand occlusion, perspective tilt.
 - **Built for regulated environments.** EU data-residency requirements, on-prem deployments, scriptable pipelines.
 
-If you need a mobile SDK, [Apple's VisionKit](https://developer.apple.com/documentation/visionkit) and [Google's ML Kit](https://developers.google.com/ml-kit/vision/document-scanner) are excellent. If you need server/desktop/headless and care about data residency, pagescan is built for that case.
+If you need a mobile SDK, [Apple's VisionKit](https://developer.apple.com/documentation/visionkit) and [Google's ML Kit](https://developers.google.com/ml-kit) are excellent. If you need server/desktop/headless and care about data residency, pagescan is built for that case.
 
 ## Get started
 

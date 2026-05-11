@@ -12,14 +12,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New ML pipeline: YOLO11n document detector → HQ-SAM ViT-B box-prompted segmentation → quad fit. Replaces the legacy SA24 + LCNet + DeepLabV3 chain (kept as fallback).
 - Over-crop guard on the ML path (regression fix; the conservative path already had one).
 - Real benchmark suite measuring detection IoU, corner pixel error, OCR word-error rate, and end-to-end visual quality against `docscan` and the OpenCV contour scanner.
-- Model weights mirrored to Hugging Face Hub under the `7rplus-gmbh` org (no more Google Drive dependency).
-- mkdocs-material documentation site with quickstart, architecture overview, API reference, and benchmark numbers.
-- Type-checked under `mypy --strict`.
-- CI matrix on Python 3.9–3.13.
+- Cascade weights mirrored to Hugging Face Hub at [`7rplus/pagescan-weights`](https://huggingface.co/7rplus/pagescan-weights); auto-downloaded on first use via `huggingface_hub`. No more Google Drive dependency.
+- Sphinx documentation site (pydata-sphinx-theme + MyST markdown) covering install, quickstart, architecture, full `ScanConfig` reference, benchmark methodology, troubleshooting, and autodoc-generated API reference. Auto-deploys to GitHub Pages on push to `main`.
+- `examples/quickstart.ipynb` — runnable end-to-end notebook covering single scan, batch, custom config, debug visualisation, and the optional ML cascade path.
+- CI: ruff + mypy on Python 3.12; pytest matrix on Python 3.9–3.13 (`.github/workflows/ci.yml`).
+- Release workflow: stable tags publish to PyPI, RC tags (`vX.Y.Z-rc.N`) stage to TestPyPI; both flows auto-attach the sdist + wheel to a GitHub Release.
+- Type-checked end-to-end with mypy (non-strict; `strict = true` is a v0.2 follow-up).
+- `scan()` return now includes a `method` field: `"cascade"`, `"legacy"`, or `"conservative"` — tells you which detection path actually produced the corners.
+- New top-level exports: `PRESET_A4_300`, `PRESET_LETTER_300`, `PRESET_FAST`, `PRESET_RAW` (previously only reachable via `pagescan.config`).
 
 ### Removed in 0.1.0 (relative to 0.0.x)
 
-- The HSV-corner-based `quality.check_quality` heuristic — replaced with a meaningful confidence score (or removed from the public return dict; decision pending).
 - Dead-code paths in `edges.py` (`trim_edges`, `find_precise_edges`, `find_receipt_bounds`).
 
 ## [0.0.1] — internal

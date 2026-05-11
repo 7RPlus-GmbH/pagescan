@@ -14,24 +14,22 @@ through.
 
 ## Before opening an issue
 
-- Check the [docs](https://pagescan.7rplus.com) and the [README](README.md).
+- Check the [docs](https://7rplus-gmbh.github.io/pagescan/) and the [README](README.md).
 - Search existing issues to avoid duplicates.
 - For bug reports, include: pagescan version, Python version, OS, a minimal reproducer, and the *input image* if possible (or a description of the document type, lighting, background).
 
 ## Before opening a pull request
 
-- Discuss large changes in an issue first. We have a 6-week release plan
-  (see [PLAN.md](PLAN.md)) and may not be able to land architectural changes
-  during it.
-- Run the test suite locally: `pytest`.
-- Run `mypy --strict src/pagescan/` (must be clean).
-- Run `ruff check .` (must be clean — config TBD).
+- Discuss large architectural changes in an issue first. The 0.1.0 scope is
+  opinionated.
+- Run all three quality gates locally — same as CI:
+  - `pytest -q`
+  - `mypy src/pagescan`
+  - `ruff check src tests`
 - Update `CHANGELOG.md` under `[Unreleased]` if user-facing.
 - Keep PRs focused. One change per PR.
 
 ## What we're looking for help with
-
-See [PLAN.md](PLAN.md) for the active roadmap. Concretely:
 
 - **Labeled training data** in the failure distributions (magazines, white-on-cream, hand-occluded). Even 20–50 labeled photos help.
 - Bug reports with attached images that pagescan currently scans poorly.

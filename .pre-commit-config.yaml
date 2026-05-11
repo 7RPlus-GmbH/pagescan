@@ -1,0 +1,32 @@
+# Pre-commit hooks. Install once:
+#
+#   pip install pre-commit
+#   pre-commit install
+#
+# Then every `git commit` runs the hooks below on the staged files. Skip
+# with `git commit --no-verify` if you really need to (don't make a habit
+# of it — CI runs the same checks and will fail).
+#
+# Update the pinned versions:
+#
+#   pre-commit autoupdate
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: ["--maxkb=1024"]   # block accidental >1 MB additions
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.12
+    hooks:
+      - id: ruff
+        args: ["--fix"]
+        files: ^(src|tests)/
+      - id: ruff-format
+        files: ^(src|tests)/

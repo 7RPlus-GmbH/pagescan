@@ -225,14 +225,17 @@ def _detect_via_legacy(image: np.ndarray) -> np.ndarray | None:
 # ---------- public API ----------
 
 def detect_corners_ml(image: np.ndarray,
-                      config: ScanConfig | None = None) -> np.ndarray | None:
+                      config: ScanConfig | None = None
+                      ) -> tuple[np.ndarray | None, str | None]:
     """Detect document corners on a single image (no rotation retry).
 
     Tries the cascade first when `config.use_cascade` is True; falls back
     to the legacy ML chain otherwise or on cascade failure. Both paths
     are validated and repaired through the shared geometry pipeline.
 
-    Returns ordered corners (TL, TR, BR, BL) or None.
+    Returns:
+        (corners, method) where corners is ordered TL, TR, BR, BL or None,
+        and method is "cascade", "legacy", or None.
     """
     if config is None:
         config = ScanConfig()
@@ -246,45 +249,46 @@ def detect_corners_ml(image: np.ndarray,
             validated = _validate_and_repair(raw, h, w, min_coverage)
             if validated is not None:
                 logger.info("  corners via cascade")
-                return validated
+                return validated, "cascade"
 
     raw = _detect_via_legacy(image)
     if raw is not None:
         validated = _validate_and_repair(raw, h, w, min_coverage)
         if validated is not None:
             logger.info("  corners via legacy ML")
-            return validated
+            return validated, "legacy"
 
-    return None
+    return None, None
 
 
 def detect_corners(image: np.ndarray,
                    config: ScanConfig | None = None
-                   ) -> tuple[np.ndarray | None, int]:
+                   ) -> tuple[np.ndarray | None, int, str | None]:
     """Detect document corners with rotation retry.
 
     Tries detection on the original image; on failure, retries at 90 and
-    270 degrees CCW. Returns (corners, rotation_k) where rotation_k is
-    the number of 90° CCW rotations applied to find the document.
+    270 degrees CCW.
 
     Returns:
-        (corners, rotation_k) or (None, 0) on total failure.
+        (corners, rotation_k, method) where rotation_k is the number of 90°
+        CCW rotations applied to find the document, and method is "cascade",
+        "legacy", or None on total ML failure.
     """
     if config is None:
         config = ScanConfig()
 
     if not config.use_ml:
-        return None, 0
+        return None, 0, None
 
-    corners = detect_corners_ml(image, config)
+    corners, method = detect_corners_ml(image, config)
     if corners is not None:
-        return corners, 0
+        return corners, 0, method
 
     for k in (1, 3):
         rotated = np.rot90(image, k=k)
-        corners = detect_corners_ml(rotated, config)
+        corners, method = detect_corners_ml(rotated, config)
         if corners is not None:
             logger.info(f"  detection succeeded after {k * 90}° CCW rotation")
-            return corners, k
+            return corners, k, method
 
-    return None, 0
+    return None, 0, None

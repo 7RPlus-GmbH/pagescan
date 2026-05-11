@@ -137,14 +137,14 @@ def scan(image_path: str, output_path: str | None = None,
         debug_dir.mkdir(exist_ok=True)
 
     # -- Corner detection with rotation retry --
-    ml_corners, ml_pre_rotation = detect_corners(image, config)
+    ml_corners, ml_pre_rotation, ml_method = detect_corners(image, config)
 
     if ml_pre_rotation != 0:
         image = np.rot90(image, k=ml_pre_rotation)
         h, w = image.shape[:2]
 
     if ml_corners is not None:
-        method = 'docaligner'
+        method = ml_method or 'docaligner'   # "cascade" or "legacy"
         corners = ml_corners
     else:
         method = 'conservative'
@@ -213,6 +213,7 @@ def scan(image_path: str, output_path: str | None = None,
 
     return {
         'success': True,
+        'method': method,
         'quality_score': quality_score,
         'quality_passed': passed,
         'message': qa_message,

@@ -1,7 +1,8 @@
-# Hidden/dot files and dirs at repo root (allow .gitignore + .github only)
+# Hidden/dot files and dirs at repo root (allow specific ones only)
 .*
 !/.gitignore
 !/.github
+!/.pre-commit-config.yaml
 
 # Python
 __pycache__/

@@ -4,7 +4,7 @@
 [![Python](https://img.shields.io/pypi/pyversions/pagescan)](https://pypi.org/project/pagescan/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-> ⚠️ **Pre-release.** pagescan is on the path to its first public release (`0.1.0`) — see [PLAN.md](PLAN.md). The README below describes the *current* state and the *target* release.
+> ⚠️ **Pre-release.** pagescan is on the path to its first public release (`0.1.0`). The README below describes the *current* state and the *target* release.
 
 A privacy-first document scanner for Python. Phone photo in, deskewed print-ready PDF out — without uploading anything to a cloud.
 
@@ -103,7 +103,7 @@ If you need a mobile SDK, Apple's VisionKit and Google's ML Kit are excellent. I
 
 pagescan is developed by [7R+ GmbH](https://7rplus.com) — same team behind [xaitalk](https://xaitalk.com).
 
-Documentation site: coming with 0.1.0 (will live at `pagescan.7rplus.com`).
+Documentation: <https://7rplus-gmbh.github.io/pagescan/> (auto-deployed from `main`). Custom domain (`pagescan.7rplus.com`) coming alongside the 0.1.0 PyPI release.
 
 ## Contributing
 
