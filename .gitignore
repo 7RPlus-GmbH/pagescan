@@ -41,6 +41,9 @@ Thumbs.db
 # pagescan runtime debug output
 pagescan_debug/
 
+# Sphinx auto-generated stubs (regenerated on every build)
+docs/source/_autosummary/
+
 # Benchmark — track scripts + labels, ignore generated output and bulk image dirs
 benchmark/*/out/
 benchmark/comparison/images/

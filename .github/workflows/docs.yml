@@ -1,0 +1,57 @@
+# Build the Sphinx site and deploy it to GitHub Pages.
+#
+# Site goes live at https://7rplus-gmbh.github.io/pagescan/ once enabled.
+#
+# Repo setup required (one-time):
+#   Settings -> Pages -> Source: "GitHub Actions"
+#
+# Triggers on every push to main; manual re-runs via workflow_dispatch.
+name: Docs
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Allow only one concurrent deployment; cancel any in-flight runs.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install docs dependencies
+        run: pip install -e ".[docs]"
+      - name: Build Sphinx site
+        run: |
+          cd docs
+          make html
+      - name: Upload site artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/build/html
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

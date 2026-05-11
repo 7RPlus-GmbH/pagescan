@@ -1,11 +1,10 @@
 """ONNX inference for document corner detection.
 
 Multi-model approach:
-1. Primary:  FastViT_SA24 heatmap regression — perspective-aware corners.
-2. Fallback: LCNet100 heatmap regression — different backbone, catches
-             images where SA24 fails.
-3. Conservative: DeepLabV3-MobileNetV3 segmentation — pixel-level mask,
-             used in conservative crop fallback only.
+
+- **Primary:** FastViT_SA24 heatmap regression — perspective-aware corners.
+- **Fallback:** LCNet100 heatmap regression — different backbone, catches images where SA24 fails.
+- **Conservative:** DeepLabV3-MobileNetV3 segmentation — pixel-level mask, used in conservative crop fallback only.
 
 All models are ONNX and downloaded automatically on first use.
 """

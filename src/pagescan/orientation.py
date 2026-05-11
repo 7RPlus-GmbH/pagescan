@@ -199,10 +199,9 @@ def auto_rotate(image: np.ndarray) -> np.ndarray:
     """Auto-rotate document to correct orientation.
 
     Strategy:
-    - For 90/270 rotations: CNN is reliable (aspect ratio change is obvious).
-      Trust CNN at conf >= 0.6.
-    - For 180 rotations: CNN is often wrong (text looks similar upside-down).
-      Always verify 180 with OCR — only apply if OCR agrees.
+
+    - For 90/270 rotations: CNN is reliable (aspect ratio change is obvious). Trust CNN at conf >= 0.6.
+    - For 180 rotations: CNN is often wrong (text looks similar upside-down). Always verify 180 with OCR — only apply if OCR agrees.
     - Low CNN confidence: fall back to OCR word scoring on all 4 orientations.
 
     The CNN model (docTR MobileNetV3-Small) is fast (~6ms) but has a known
