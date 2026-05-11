@@ -1,0 +1,129 @@
+\documentclass[a4paper,10pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[german]{babel}
+\usepackage{lmodern}
+\usepackage[left=2cm,right=2cm,top=1.5cm,bottom=2cm]{geometry}
+\usepackage{eurosym}
+\usepackage{tabularx}
+\usepackage{booktabs}
+\usepackage{parskip}
+\usepackage{fancyhdr}
+\usepackage{xcolor}
+
+\definecolor{accent}{RGB}{0,80,140}
+
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0pt}
+\fancyfoot[C]{\footnotesize\color{gray} Sconto M\"obelmarkt GmbH $\cdot$ Otto-Hahn-Str. 29 $\cdot$ 63456 Hanau $\cdot$ HRB 84721 $\cdot$ AG Hanau}
+\fancyfoot[R]{\footnotesize\color{gray} Seite \thepage}
+
+\begin{document}
+
+% Header
+\noindent
+\begin{minipage}[t]{0.55\textwidth}
+{\color{accent}\textbf{\Large Sconto}}\\
+{\color{accent}\large Der M\"obelmarkt}\\[0.3cm]
+{\small
+Filiale Hanau\\
+Otto-Hahn-Str. 29\\
+63456 Hanau\\
+Tel: 06181 / 180 64 0\\
+Fax: 06181 / 180 64 99\\
+www.sconto.de
+}
+\end{minipage}%
+\hfill
+\begin{minipage}[t]{0.4\textwidth}
+\raggedleft
+{\Large\textbf{KASSENAUFTRAG}}\\[0.3cm]
+{\large\textbf{SHN 412087}}\\[0.5cm]
+{\small vom 15.02.2026}
+\end{minipage}
+
+\vspace{0.5cm}
+{\color{accent}\rule{\textwidth}{1pt}}
+\vspace{0.3cm}
+
+% Customer info
+\noindent
+{\small
+\begin{tabularx}{\textwidth}{@{}lXl@{}}
+Verk\"aufsberater: & 714 Schmidt, Andrea & \\
+Kundendienst: & 06181 / 180 64 0 & \\
+Kunde: & Thomas M\"uller & \\
+Kontakt: & Schillerstra\ss e 42, 60313 Frankfurt & \\
+\end{tabularx}
+}
+
+\vspace{0.3cm}
+
+% Note
+\noindent
+\fbox{\parbox{0.95\textwidth}{\small
+\textbf{Folgende Ware erhalten Sie an der Warenausgabe.}\\
+Bitte holen Sie die Ware HEUTE bis sp\"atestens 18:30 Uhr ab.\\
+Alternativ stellen wir Ihnen unseren Lieferdienst zur Verf\"ugung.
+}}
+
+\vspace{0.5cm}
+
+% Items
+{\small
+\begin{tabularx}{\textwidth}{@{}r l X r r@{}}
+\toprule
+\textbf{Lf} & \textbf{Art.-Nr.} & \textbf{Artikel-Bezeichnung} & \textbf{Anz.} & \textbf{Ges.Preis} \\
+\midrule
+1 & 2847193 & Ecksofa \glqq Milano\grqq{} Bezug Stoff grau & & \\
+  &         & inkl. Schlaffunktion und Bettkasten & & \\
+  &         & Ma\ss e ca. 274 x 188 cm, Sitzh\"ohe 44 cm & & \\
+  &         & mit verstellbaren Kopfst\"utzen & 1 & 849,00 \\[0.2cm]
+2 & 0941827 & Couchtisch \glqq Nordic\grqq{} Eiche massiv & & \\
+  &         & 120 x 60 x 45 cm, ge\"olt & 1 & 279,00 \\[0.2cm]
+3 & 5518203 & Stehlampe \glqq Arc\grqq{} Metall schwarz & & \\
+  &         & H\"ohe ca. 180 cm, E27 Fassung & 1 & 89,00 \\[0.2cm]
+4 & 8830041 & Kissen Set 3-teilig grau/wei\ss{} & & \\
+  &         & 45 x 45 cm, Baumwolle & 1 & 34,99 \\
+\midrule
+  &         & & & \\
+  &         & \textbf{Gesamtsumme} & & \textbf{1.251,99} \\[0.1cm]
+  &         & {\small darin enth. 19\% MwSt} & & {\small 199,83} \\
+\bottomrule
+\end{tabularx}
+}
+
+\vspace{1cm}
+
+\noindent
+{\small
+\begin{tabularx}{\textwidth}{@{}lX@{}}
+\textbf{Zahlungsart:} & EC-Kartenzahlung \\
+\textbf{Lieferadresse:} & Schillerstra\ss e 42, 60313 Frankfurt am Main \\
+\textbf{Liefertermin:} & KW 9 / 2026 (Avisierung 1 Tag vorher) \\
+\textbf{Lieferkosten:} & 49,00 \euro{} (im Gesamtpreis enthalten) \\
+\end{tabularx}
+}
+
+\vspace{0.8cm}
+
+{\color{accent}\rule{\textwidth}{0.5pt}}
+
+\vspace{0.3cm}
+
+\noindent{\footnotesize
+\textbf{Hinweis:} Die Preise verstehen sich inkl.\ gesetzl.\ MwSt. Evtl.\ ausgew\"ahlte Rabatte/Nachl\"asse sind bereits verrechnet. Umtausch/R\"uckgabe innerhalb von 14 Tagen mit Kassenbon. Es gelten unsere AGB, einsehbar unter www.sconto.de/agb.
+}
+
+\vspace{0.5cm}
+
+\noindent{\footnotesize
+\begin{tabular}{@{}ll@{}}
+Sconto SB Der M\"obelmarkt GmbH & Gesch\"aftsf.: R. Krieger, S. Bauer \\
+Sitz: Hanau, HRB 84721, AG Hanau & St-Nr: 035/241/01832 \\
+Mainzer Commercial Bank AG & USt-IdNr: DE287941653 \\
+IBAN: DE91 5089 0000 0041 0039 17 & BIC: GENODEF1M06 \\
+\end{tabular}
+}
+
+\end{document}

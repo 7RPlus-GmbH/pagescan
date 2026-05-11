@@ -1,0 +1,116 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pagescan"
+version = "0.1.0"
+description = "Privacy-first document scanner — phone photo to deskewed PDF."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.9"
+authors = [
+    { name = "7R+ GmbH" },
+]
+keywords = ["document", "scanner", "ocr", "perspective", "deskew", "pdf"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Multimedia :: Graphics",
+    "Topic :: Scientific/Engineering :: Image Processing",
+    "Typing :: Typed",
+]
+dependencies = [
+    "opencv-python-headless>=4.5",
+    "numpy>=1.20",
+    "Pillow>=9.0",
+    "img2pdf>=0.4",
+    "pytesseract",
+    "onnxruntime>=1.16",
+    "huggingface-hub>=0.20",
+]
+
+[project.optional-dependencies]
+# The ML cascade (YOLO + HQ-SAM box-prompted segmentation) is the
+# primary detection path. It needs torch and segment-anything-hq.
+# Without these, pagescan falls back to the legacy SA24+LCNet ML chain
+# (still fully functional, slightly weaker on hard cases).
+ml = [
+    "torch>=2.0",
+    "segment-anything-hq>=0.3",
+]
+dev = [
+    "pytest>=7",
+    "pytest-cov",
+    "ruff>=0.5",
+    "mypy>=1.8",
+]
+docs = [
+    "mkdocs-material>=9",
+    "mkdocstrings[python]>=0.24",
+]
+
+[project.scripts]
+pagescan = "pagescan.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/7RPlus-GmbH/pagescan"
+Issues = "https://github.com/7RPlus-GmbH/pagescan/issues"
+Documentation = "https://github.com/7RPlus-GmbH/pagescan#readme"
+Changelog = "https://github.com/7RPlus-GmbH/pagescan/blob/main/CHANGELOG.md"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pagescan"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+# --- ruff -------------------------------------------------------------
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+extend-exclude = ["_archive", "benchmark/_archive", "data"]
+
+[tool.ruff.lint]
+# Curated baseline; expand once the codebase is clean.
+select = [
+    "E",    # pycodestyle errors
+    "F",    # pyflakes
+    "W",    # pycodestyle warnings
+    "I",    # isort
+    "B",    # bugbear
+    "UP",   # pyupgrade
+    "SIM",  # simplify
+    "PIE",  # misc
+    "RUF",  # ruff-specific
+]
+ignore = [
+    "E501",  # line length handled by formatter
+    "B008",  # function calls in default args (used for OpenCV defaults)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["B"]
+"_archive/*" = ["E", "F", "W", "I", "B", "UP", "SIM", "PIE", "RUF"]
+
+# --- mypy -------------------------------------------------------------
+[tool.mypy]
+python_version = "3.9"
+strict = false  # bump to true after src/pagescan is annotated end-to-end
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_no_return = true
+no_implicit_optional = true
+exclude = ["_archive/", "benchmark/", "training/", "tools/"]
+
+[[tool.mypy.overrides]]
+module = ["cv2.*", "pytesseract.*", "img2pdf.*", "onnxruntime.*",
+          "torch.*", "segment_anything_hq.*", "huggingface_hub.*"]
+ignore_missing_imports = true

@@ -1,0 +1,84 @@
+# Hidden/dot files and dirs at repo root (allow .gitignore + .github only)
+.*
+!/.gitignore
+!/.github
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+*.egg
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Testing
+.pytest_cache/
+.tox/
+.coverage
+.coverage.*
+htmlcov/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# pagescan runtime debug output
+pagescan_debug/
+
+# Benchmark — track scripts + labels, ignore generated output and bulk image dirs
+benchmark/*/out/
+benchmark/comparison/images/
+benchmark/comparison/results/
+benchmark/data/
+_archive/*
+# summary.json files are kept for reproducibility, not ignored
+
+# Training — track scripts + labels, ignore datasets and sanity-check outputs
+# (exclude contents of training/data/ but keep the README so the layout is documented)
+training/data/*
+!training/data/README.md
+training/yolo/_sanity/
+training/yolo/runs/
+training/dataset/
+training/dataset.zip
+training/*.ipynb_checkpoints
+
+# Models — never check in binary weights; they live on HF Hub
+data/model/*.onnx
+data/model/*.pt
+data/model/*.pth
+data/model/*.log
+_archive/data/model/*.onnx
+_archive/data/model/*.pt
+_archive/data/model/*.pth
+_archive/data/model/*.log
+
+# LaTeX build artefacts
+*.aux
+*.fls
+*.fdb_latexmk
+benchmark/comparison/test_documents/*.log
+
+# Local secrets / scratch
+*.local
+*.secret
+
+# Internal release planning — not for public GitHub
+PLAN.md
+_archive/
