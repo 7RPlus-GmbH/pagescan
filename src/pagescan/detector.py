@@ -12,7 +12,6 @@ from __future__ import annotations
 import logging
 import os
 from pathlib import Path
-from typing import Optional, Tuple
 
 import cv2
 import numpy as np
@@ -72,7 +71,7 @@ def _get_session():
 
 
 def _letterbox(img: np.ndarray, new_shape: int = INPUT_SIZE
-                ) -> Tuple[np.ndarray, float, Tuple[int, int]]:
+                ) -> tuple[np.ndarray, float, tuple[int, int]]:
     """Resize to (new_shape, new_shape) preserving aspect ratio with gray padding.
 
     Returns:
@@ -82,7 +81,7 @@ def _letterbox(img: np.ndarray, new_shape: int = INPUT_SIZE
     """
     h, w = img.shape[:2]
     r = new_shape / max(h, w)
-    new_h, new_w = int(round(h * r)), int(round(w * r))
+    new_h, new_w = round(h * r), round(w * r)
     resized = cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_LINEAR)
     canvas = np.full((new_shape, new_shape, 3), 114, dtype=np.uint8)
     pad_y = (new_shape - new_h) // 2
@@ -92,7 +91,7 @@ def _letterbox(img: np.ndarray, new_shape: int = INPUT_SIZE
 
 
 def detect(image: np.ndarray, conf_threshold: float = 0.25
-           ) -> Optional[Tuple[np.ndarray, float]]:
+           ) -> tuple[np.ndarray, float] | None:
     """Find the highest-confidence document bbox.
 
     Args:

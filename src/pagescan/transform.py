@@ -41,7 +41,7 @@ def perspective_transform(image: np.ndarray, corners: np.ndarray) -> np.ndarray:
     return cv2.warpPerspective(image, M, (width, height), flags=cv2.INTER_LANCZOS4)
 
 
-def place_on_canvas(image: np.ndarray, config: ScanConfig = None) -> np.ndarray:
+def place_on_canvas(image: np.ndarray, config: ScanConfig | None = None) -> np.ndarray:
     """Place document image on a white canvas (default A4 at 300 DPI) with margin."""
     if config is None:
         config = ScanConfig()
@@ -57,6 +57,7 @@ def place_on_canvas(image: np.ndarray, config: ScanConfig = None) -> np.ndarray:
 
     resized = cv2.resize(image, (new_w, new_h), interpolation=cv2.INTER_LANCZOS4)
 
+    canvas: np.ndarray
     if is_gray:
         canvas = np.ones((config.output_height, config.output_width), dtype=np.uint8) * 255
     else:

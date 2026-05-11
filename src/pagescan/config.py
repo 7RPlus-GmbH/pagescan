@@ -3,9 +3,9 @@
 All tunable parameters are exposed here so users can adapt pagescan
 to different backgrounds, paper types, and output requirements.
 """
+from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Tuple
+from dataclasses import dataclass
 
 
 @dataclass
@@ -47,8 +47,8 @@ class ScanConfig:
     """
 
     # Background detection (default: wood table)
-    background_hsv_low: Tuple[int, int, int] = (0, 65, 30)
-    background_hsv_high: Tuple[int, int, int] = (45, 255, 255)
+    background_hsv_low: tuple[int, int, int] = (0, 65, 30)
+    background_hsv_high: tuple[int, int, int] = (45, 255, 255)
     background_hsv_strict_s: int = 90
 
     # Output dimensions (default: A4 at 300 DPI)

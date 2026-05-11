@@ -11,9 +11,9 @@ Public surface:
     detect_paper_quad        - Stricter 4-corner quad with paper-shape priors
     estimate_paper_coverage  - Sanity-check helper for over-crop guards
 """
+from __future__ import annotations
 
 import logging
-from typing import Optional, Tuple
 
 import cv2
 import numpy as np
@@ -23,8 +23,8 @@ from pagescan.config import ScanConfig
 logger = logging.getLogger(__name__)
 
 
-def find_paper_contour(image: np.ndarray, config: ScanConfig = None,
-                       min_area_ratio: float = 0.05) -> Tuple[int, int, int, int]:
+def find_paper_contour(image: np.ndarray, config: ScanConfig | None = None,
+                       min_area_ratio: float = 0.05) -> tuple[int, int, int, int]:
     """Find the largest paper region via contour detection.
 
     Fallback for when find_precise_edges fails (e.g. small document on
@@ -40,7 +40,7 @@ def find_paper_contour(image: np.ndarray, config: ScanConfig = None,
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
     # Saturation up to 100 to handle paper under warm indoor lighting
-    paper = cv2.inRange(hsv, (0, 0, 120), (180, 100, 255))
+    paper = cv2.inRange(hsv, (0, 0, 120), (180, 100, 255))  # type: ignore[call-overload]
 
     short = min(h, w)
     ks = max(25, short // 60) | 1
@@ -57,7 +57,7 @@ def find_paper_contour(image: np.ndarray, config: ScanConfig = None,
         return 0, h, 0, w
 
     x1, y1, x2, y2 = w, h, 0, 0
-    total_area = 0
+    total_area = 0.0
     for c in significant:
         bx, by, bw, bh = cv2.boundingRect(c)
         x1 = min(x1, bx)
@@ -149,7 +149,7 @@ def _find_document_contours(image: np.ndarray):
         if approx is None:
             approx = cv2.approxPolyDP(c, 0.02 * peri, True)
 
-        bx, by, bw, bh = cv2.boundingRect(c)
+        _bx, _by, bw, bh = cv2.boundingRect(c)
         rect_area = bw * bh
         if rect_area < 1:
             continue
@@ -172,7 +172,7 @@ def _find_document_contours(image: np.ndarray):
     return scored
 
 
-def detect_corners_contour(image: np.ndarray, config: ScanConfig = None):
+def detect_corners_contour(image: np.ndarray, config: ScanConfig | None = None):
     """Detect document corners via edge-based contour analysis.
 
     Background-agnostic alternative to ML corner detection. Returns
@@ -203,7 +203,7 @@ def detect_corners_contour(image: np.ndarray, config: ScanConfig = None):
     return box.astype(np.float32)
 
 
-def find_document_edges(image: np.ndarray, config: ScanConfig = None) -> Tuple[int, int, int, int]:
+def find_document_edges(image: np.ndarray, config: ScanConfig | None = None) -> tuple[int, int, int, int]:
     """Background-agnostic document detection via edge analysis.
 
     Works on ANY background by detecting the document's sharp edges
@@ -221,7 +221,7 @@ def find_document_edges(image: np.ndarray, config: ScanConfig = None) -> Tuple[i
     if not scored:
         return find_paper_contour(image, config)
 
-    _, contour, approx = scored[0]
+    _, contour, _approx = scored[0]
     bx, by, bw, bh = cv2.boundingRect(contour)
 
     margin_x = max(10, int(w * 0.01))
@@ -235,7 +235,7 @@ def find_document_edges(image: np.ndarray, config: ScanConfig = None) -> Tuple[i
     return y1, y2, x1, x2
 
 
-def detect_paper_quad(image: np.ndarray, config: ScanConfig = None) -> Optional[np.ndarray]:
+def detect_paper_quad(image: np.ndarray, config: ScanConfig | None = None) -> np.ndarray | None:
     """Detect document boundary via paper-mask segmentation.
 
     Works by finding bright, low-saturation pixels (paper) and fitting a
@@ -258,7 +258,7 @@ def detect_paper_quad(image: np.ndarray, config: ScanConfig = None) -> Optional[
     # Paper mask: low saturation, reasonably bright
     # S<100 handles paper under warm indoor lighting; V>100 is slightly more
     # permissive than find_paper_contour (V>120) to catch fold-line shadows
-    paper = cv2.inRange(hsv, (0, 0, 100), (180, 100, 255))
+    paper = cv2.inRange(hsv, (0, 0, 100), (180, 100, 255))  # type: ignore[call-overload]
 
     # Aggressive morphological closing to bridge fold lines
     # Fold lines are typically 20-80px wide on a 3024px image; we need a
@@ -324,7 +324,7 @@ def estimate_paper_coverage(image: np.ndarray) -> float:
     probably wrong (detecting a fold section, not the whole document).
     """
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-    paper = cv2.inRange(hsv, (0, 0, 100), (180, 100, 255))
+    paper = cv2.inRange(hsv, (0, 0, 100), (180, 100, 255))  # type: ignore[call-overload]
     return float(np.mean(paper > 0))
 
 

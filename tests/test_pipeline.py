@@ -1,13 +1,12 @@
 """Integration tests for the scan pipeline."""
 
-import tempfile
 from pathlib import Path
 
 import cv2
 import numpy as np
 import pytest
 
-from pagescan import scan, ScanConfig
+from pagescan import ScanConfig, scan
 
 
 def _create_test_image(path: str, h=3000, w=2200):

@@ -5,8 +5,6 @@ import logging
 import cv2
 import numpy as np
 
-from pagescan.config import ScanConfig
-
 logger = logging.getLogger(__name__)
 
 
@@ -61,7 +59,7 @@ def white_balance(image: np.ndarray) -> np.ndarray:
     center = image[y1:y2, x1:x2]
 
     hsv_center = cv2.cvtColor(center, cv2.COLOR_BGR2HSV)
-    paper_mask = cv2.inRange(hsv_center, (0, 0, 160), (180, 60, 255))
+    paper_mask = cv2.inRange(hsv_center, (0, 0, 160), (180, 60, 255))  # type: ignore[call-overload]
 
     paper_pixels = center[paper_mask > 0]
     if len(paper_pixels) < 100:

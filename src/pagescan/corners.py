@@ -18,7 +18,6 @@ cascade or legacy, no quad smaller than the configured floor is accepted.
 from __future__ import annotations
 
 import logging
-from typing import Optional, Tuple
 
 import cv2
 import numpy as np
@@ -29,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 # --- Cascade modules (production path) ---
 try:
-    from pagescan import detector, segmenter  # noqa: F401
+    from pagescan import detector, segmenter
     HAS_CASCADE = True
 except ImportError:
     HAS_CASCADE = False
@@ -65,7 +64,7 @@ def _edge_angle(v: np.ndarray) -> float:
     return np.degrees(np.arctan2(v[1], v[0]))
 
 
-def _check_parallel(pts: np.ndarray) -> Tuple[float, float]:
+def _check_parallel(pts: np.ndarray) -> tuple[float, float]:
     """Return (top-bottom angular diff, left-right angular diff) in degrees."""
     top = pts[1] - pts[0]
     bottom = pts[2] - pts[3]
@@ -91,7 +90,7 @@ def _check_quad_dimensions(pts: np.ndarray, h: int, w: int) -> bool:
 
 
 def _repair_corners(ordered: np.ndarray, tb_diff: float, lr_diff: float,
-                    h: int, w: int) -> Optional[np.ndarray]:
+                    h: int, w: int) -> np.ndarray | None:
     """Try to make opposite edges parallel by adjusting the outlier corner.
 
     When top/bottom angles diverge, one bottom corner is misplaced.
@@ -137,7 +136,7 @@ def _repair_corners(ordered: np.ndarray, tb_diff: float, lr_diff: float,
 
 
 def _validate_and_repair(corners: np.ndarray, h: int, w: int,
-                         min_coverage: float = 0.05) -> Optional[np.ndarray]:
+                         min_coverage: float = 0.05) -> np.ndarray | None:
     """Validate raw corners (coverage, dimensions, parallelism) and attempt repair.
 
     `min_coverage` is the over-crop guard: any quad whose area is below
@@ -178,7 +177,7 @@ def _validate_and_repair(corners: np.ndarray, h: int, w: int,
 
 # ---------- detection backends ----------
 
-def _detect_via_cascade(image: np.ndarray, config: ScanConfig) -> Optional[np.ndarray]:
+def _detect_via_cascade(image: np.ndarray, config: ScanConfig) -> np.ndarray | None:
     """YOLO bbox -> HQ-SAM mask -> quad. Returns raw (unvalidated) 4 corners or None."""
     if not HAS_CASCADE:
         return None
@@ -209,7 +208,7 @@ def _detect_via_cascade(image: np.ndarray, config: ScanConfig) -> Optional[np.nd
         return None
 
 
-def _detect_via_legacy(image: np.ndarray) -> Optional[np.ndarray]:
+def _detect_via_legacy(image: np.ndarray) -> np.ndarray | None:
     """Legacy SA24 + LCNet100 ONNX chain. Returns raw (unvalidated) 4 corners or None."""
     if not HAS_LEGACY_ML:
         return None
@@ -226,7 +225,7 @@ def _detect_via_legacy(image: np.ndarray) -> Optional[np.ndarray]:
 # ---------- public API ----------
 
 def detect_corners_ml(image: np.ndarray,
-                      config: Optional[ScanConfig] = None) -> Optional[np.ndarray]:
+                      config: ScanConfig | None = None) -> np.ndarray | None:
     """Detect document corners on a single image (no rotation retry).
 
     Tries the cascade first when `config.use_cascade` is True; falls back
@@ -260,8 +259,8 @@ def detect_corners_ml(image: np.ndarray,
 
 
 def detect_corners(image: np.ndarray,
-                   config: Optional[ScanConfig] = None
-                   ) -> Tuple[Optional[np.ndarray], int]:
+                   config: ScanConfig | None = None
+                   ) -> tuple[np.ndarray | None, int]:
     """Detect document corners with rotation retry.
 
     Tries detection on the original image; on failure, retries at 90 and

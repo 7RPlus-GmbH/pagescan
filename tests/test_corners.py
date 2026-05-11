@@ -1,9 +1,8 @@
 """Tests for corner detection utilities."""
 
 import numpy as np
-import pytest
 
-from pagescan.corners import order_corners, _check_parallel, _check_quad_dimensions
+from pagescan.corners import _check_parallel, _check_quad_dimensions, order_corners
 
 
 class TestOrderCorners:
@@ -41,7 +40,7 @@ class TestCheckParallel:
 
     def test_slight_tilt(self):
         pts = np.array([[0, 0], [100, 5], [100, 155], [0, 150]], dtype=np.float32)
-        tb, lr = _check_parallel(pts)
+        tb, _lr = _check_parallel(pts)
         assert tb < 5.0  # Parallel-ish
 
 

@@ -1,7 +1,7 @@
 """Quality assessment for scanned documents."""
+from __future__ import annotations
 
 import logging
-from typing import Tuple
 
 import cv2
 import numpy as np
@@ -11,7 +11,7 @@ from pagescan.config import ScanConfig
 logger = logging.getLogger(__name__)
 
 
-def check_quality(image: np.ndarray, config: ScanConfig = None) -> Tuple[bool, float, str]:
+def check_quality(image: np.ndarray, config: ScanConfig | None = None) -> tuple[bool, float, str]:
     """Check for background contamination at document corners.
 
     Samples 5% of each corner and measures background (wood/shadow) ratio
@@ -42,7 +42,7 @@ def check_quality(image: np.ndarray, config: ScanConfig = None) -> Tuple[bool, f
 
     wood_ratios = []
     for corner in corners:
-        wood = cv2.inRange(corner, (bg_low[0], strict_s, bg_low[2]), bg_high)
+        wood = cv2.inRange(corner, (bg_low[0], strict_s, bg_low[2]), bg_high)  # type: ignore[call-overload]
         ratio = np.sum(wood > 0) / max(corner.size // 3, 1)
         wood_ratios.append(ratio)
 

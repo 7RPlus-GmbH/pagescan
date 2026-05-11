@@ -1,9 +1,8 @@
 """Tests for image enhancement functions."""
 
 import numpy as np
-import pytest
 
-from pagescan.enhance import remove_shadows, white_balance, enhance_document
+from pagescan.enhance import enhance_document, remove_shadows, white_balance
 
 
 def _make_document_image(h=400, w=300):

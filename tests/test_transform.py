@@ -1,7 +1,6 @@
 """Tests for perspective transform and canvas placement."""
 
 import numpy as np
-import pytest
 
 from pagescan.config import ScanConfig
 from pagescan.transform import perspective_transform, place_on_canvas

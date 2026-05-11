@@ -14,7 +14,7 @@ from pagescan.config import ScanConfig
 logger = logging.getLogger(__name__)
 
 
-def save_pdf(image: np.ndarray, output_path: str, config: ScanConfig = None) -> None:
+def save_pdf(image: np.ndarray, output_path: str, config: ScanConfig | None = None) -> None:
     """Save image as a single-page PDF.
 
     Encodes as JPEG and wraps in a PDF sized to the configured page

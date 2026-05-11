@@ -18,7 +18,6 @@ from __future__ import annotations
 import logging
 import os
 from pathlib import Path
-from typing import Optional
 
 import cv2
 import numpy as np
@@ -80,7 +79,7 @@ def _get_predictor():
     return _predictor
 
 
-def segment(image: np.ndarray, bbox: np.ndarray) -> Optional[np.ndarray]:
+def segment(image: np.ndarray, bbox: np.ndarray) -> np.ndarray | None:
     """Segment the document given an axis-aligned box prompt.
 
     Args:
@@ -91,7 +90,7 @@ def segment(image: np.ndarray, bbox: np.ndarray) -> Optional[np.ndarray]:
         Binary mask (H, W) bool, or None on failure.
     """
     try:
-        import torch  # noqa: F401  (presence check — the call below uses no_grad)
+        import torch
     except ImportError as e:
         raise ImportError("torch is required for HQ-SAM") from e
     import torch
@@ -111,7 +110,7 @@ def segment(image: np.ndarray, bbox: np.ndarray) -> Optional[np.ndarray]:
     return masks[0].astype(bool)
 
 
-def mask_to_quad(mask: np.ndarray, min_area: int = 1000) -> Optional[np.ndarray]:
+def mask_to_quad(mask: np.ndarray, min_area: int = 1000) -> np.ndarray | None:
     """Fit a 4-corner quadrilateral to a binary mask.
 
     Strategy: largest external contour -> convex hull -> walk approxPolyDP

@@ -9,13 +9,14 @@ Multi-model approach:
 
 All models are ONNX and downloaded automatically on first use.
 """
+from __future__ import annotations
 
 import logging
 import os
 import shutil
 import urllib.request
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Any
 
 import cv2
 import numpy as np
@@ -23,7 +24,7 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 # -- Model registry --
-MODELS = {
+MODELS: dict[str, dict[str, Any]] = {
     'sa24': {
         'filename': 'fastvit_sa24_h_e_bifpn_256_fp32.onnx',
         'gdrive_id': '14vUH77v6yGg7zFctUgcT6BzV5Iisg4Dl',
@@ -48,7 +49,7 @@ MODELS = {
 
 HEATMAP_THRESHOLD = 0.1
 
-_sessions = {}  # model_name -> ort.InferenceSession
+_sessions: dict[str, Any] = {}  # model_name -> ort.InferenceSession
 
 
 def _get_cache_dir() -> Path:
@@ -114,11 +115,11 @@ def _get_session(name: str):
 
     try:
         import onnxruntime as ort
-    except ImportError:
+    except ImportError as err:
         raise ImportError(
             "onnxruntime is required for ML corner detection. "
             "Install it with: pip install onnxruntime"
-        )
+        ) from err
 
     model_path = _ensure_model(name)
     opts = ort.SessionOptions()
@@ -133,8 +134,8 @@ def _get_session(name: str):
 
 # -- Heatmap model inference --
 
-def _preprocess_heatmap(img: np.ndarray, input_size: Tuple[int, int]
-                        ) -> Tuple[np.ndarray, Tuple[int, int]]:
+def _preprocess_heatmap(img: np.ndarray, input_size: tuple[int, int]
+                        ) -> tuple[np.ndarray, tuple[int, int]]:
     """Resize to model input size and convert to NCHW float tensor."""
     h, w = img.shape[:2]
     resized = cv2.resize(img, input_size, interpolation=cv2.INTER_LINEAR)
@@ -143,7 +144,7 @@ def _preprocess_heatmap(img: np.ndarray, input_size: Tuple[int, int]
 
 
 def _postprocess_heatmap(heatmaps: np.ndarray,
-                         orig_size: Tuple[int, int]) -> Optional[np.ndarray]:
+                         orig_size: tuple[int, int]) -> np.ndarray | None:
     """Extract 4 corner points from heatmap predictions.
 
     Uses argmax to find the peak in each channel, then scales to original
@@ -173,7 +174,7 @@ def _postprocess_heatmap(heatmaps: np.ndarray,
     return np.array(points, dtype=np.float32)
 
 
-def _run_heatmap_raw(image: np.ndarray, model_name: str) -> Optional[np.ndarray]:
+def _run_heatmap_raw(image: np.ndarray, model_name: str) -> np.ndarray | None:
     """Run a heatmap model and return raw heatmaps (1, 4, H, W) or None."""
     if image.ndim != 3 or image.shape[2] != 3:
         return None
@@ -198,7 +199,7 @@ def _heatmap_confidence(heatmaps: np.ndarray) -> float:
     return float(np.mean([heatmaps[0, i].max() for i in range(4)]))
 
 
-def _detect_heatmap(image: np.ndarray, model_name: str) -> Optional[np.ndarray]:
+def _detect_heatmap(image: np.ndarray, model_name: str) -> np.ndarray | None:
     """Run a heatmap model and return 4 corners or None."""
     heatmaps = _run_heatmap_raw(image, model_name)
     if heatmaps is None:
@@ -209,7 +210,7 @@ def _detect_heatmap(image: np.ndarray, model_name: str) -> Optional[np.ndarray]:
 
 # -- Segmentation model inference --
 
-def _detect_segmentation(image: np.ndarray, model_name: str) -> Optional[np.ndarray]:
+def _detect_segmentation(image: np.ndarray, model_name: str) -> np.ndarray | None:
     """Run a segmentation model and extract document corners from the mask."""
     if image.ndim != 3 or image.shape[2] != 3:
         return None
@@ -281,7 +282,7 @@ def _detect_segmentation(image: np.ndarray, model_name: str) -> Optional[np.ndar
 
 # -- Public API --
 
-def detect_corners_onnx(image: np.ndarray) -> Optional[np.ndarray]:
+def detect_corners_onnx(image: np.ndarray) -> np.ndarray | None:
     """Detect document corners using multi-model fallback chain.
 
     1. FastViT_SA24 heatmap (primary) — perspective-aware corners
@@ -289,7 +290,7 @@ def detect_corners_onnx(image: np.ndarray) -> Optional[np.ndarray]:
 
     Returns 4 corner points as float32 array of shape (4, 2), or None.
     """
-    h, w = image.shape[:2]
+    _h, _w = image.shape[:2]
 
     # Primary: SA24 heatmap
     corners = _detect_heatmap(image, 'sa24')
@@ -306,7 +307,7 @@ def detect_corners_onnx(image: np.ndarray) -> Optional[np.ndarray]:
     return None
 
 
-def detect_corners_segmentation(image: np.ndarray) -> Optional[np.ndarray]:
+def detect_corners_segmentation(image: np.ndarray) -> np.ndarray | None:
     """Detect document corners using DeepLabV3 segmentation.
 
     Separate from the heatmap chain — used in conservative crop fallback.

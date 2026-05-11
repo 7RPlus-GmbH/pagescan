@@ -1,21 +1,26 @@
 """Main scanning pipeline: photo of document -> clean PDF."""
+from __future__ import annotations
 
 import logging
 import multiprocessing
 import os
 from pathlib import Path
-from typing import Dict, Optional
 
 import cv2
 import numpy as np
 
 from pagescan.config import ScanConfig
 from pagescan.corners import detect_corners, order_corners
-from pagescan.edges import find_paper_contour, find_document_edges, detect_corners_contour, detect_paper_quad
+from pagescan.edges import (
+    detect_corners_contour,
+    detect_paper_quad,
+    find_document_edges,
+    find_paper_contour,
+)
+from pagescan.enhance import enhance_document, remove_shadows, white_balance
 from pagescan.model import detect_corners_segmentation
-from pagescan.enhance import remove_shadows, white_balance, enhance_document
-from pagescan.orientation import deskew, auto_rotate
-from pagescan.output import save_pdf, save_image
+from pagescan.orientation import auto_rotate, deskew
+from pagescan.output import save_image, save_pdf
 from pagescan.quality import check_quality
 from pagescan.transform import perspective_transform, place_on_canvas
 
@@ -94,8 +99,8 @@ def _conservative_crop(image: np.ndarray, config: ScanConfig) -> np.ndarray:
     return image[top:bottom, left:right]
 
 
-def scan(image_path: str, output_path: str = None,
-         config: ScanConfig = None) -> Dict:
+def scan(image_path: str, output_path: str | None = None,
+         config: ScanConfig | None = None) -> dict:
     """Scan a single document photo into a clean PDF.
 
     Pipeline:
@@ -158,6 +163,7 @@ def scan(image_path: str, output_path: str = None,
     if method == 'conservative':
         document = _conservative_crop(image.copy(), config)
     else:
+        assert corners is not None  # method != 'conservative' implies ml_corners was found
         document = perspective_transform(image, corners)
         logger.info(f"  Straightened: {document.shape[1]}x{document.shape[0]}")
         # NO aggressive trimming after ML perspective — the ML corners define
@@ -175,7 +181,7 @@ def scan(image_path: str, output_path: str = None,
 
     # -- Deskew --
     if config.deskew:
-        document, deskew_angle = deskew(document)
+        document, _deskew_angle = deskew(document)
 
     # -- Quality check (informational only, no retries that would over-crop) --
     passed, quality_score, qa_message = check_quality(document, config)
@@ -224,8 +230,8 @@ def _process_single(args):
         return Path(img_path).name, {'success': False, 'message': str(e)}
 
 
-def scan_batch(input_dir: str, output_dir: str = None,
-               config: ScanConfig = None, workers: int = None) -> Dict:
+def scan_batch(input_dir: str, output_dir: str | None = None,
+               config: ScanConfig | None = None, workers: int | None = None) -> dict:
     """Process all images in a directory.
 
     Args:

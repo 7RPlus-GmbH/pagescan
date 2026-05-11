@@ -1,11 +1,11 @@
 """Document orientation correction: deskew and auto-rotation."""
+from __future__ import annotations
 
 import logging
 import os
 import shutil
 import urllib.request
 from pathlib import Path
-from typing import Optional, Tuple
 
 import cv2
 import numpy as np
@@ -92,7 +92,7 @@ def _get_orientation_session():
     return _ori_session
 
 
-def classify_orientation(image: np.ndarray) -> Tuple[int, float]:
+def classify_orientation(image: np.ndarray) -> tuple[int, float]:
     """Classify document orientation using CNN model.
 
     Returns (correction_angle, confidence) where correction_angle is one of
@@ -125,7 +125,7 @@ def classify_orientation(image: np.ndarray) -> Tuple[int, float]:
     return ORI_CLASSES[idx], float(probs[idx])
 
 
-def deskew(image: np.ndarray) -> Tuple[np.ndarray, float]:
+def deskew(image: np.ndarray) -> tuple[np.ndarray, float]:
     """Correct text skew using Hough line detection.
 
     Detects near-horizontal lines (text baselines, rules, table borders)
@@ -226,7 +226,7 @@ def auto_rotate(image: np.ndarray) -> np.ndarray:
 
     # -- For 180 or low confidence: verify with OCR --
     try:
-        import pytesseract
+        import pytesseract  # noqa: F401  # availability probe; real import deferred to _ocr_word_score
     except ImportError:
         # No OCR available — trust CNN if reasonable confidence
         if cnn_k != 0 and cnn_conf >= 0.5:
@@ -263,7 +263,7 @@ def auto_rotate(image: np.ndarray) -> np.ndarray:
         rotated = np.rot90(gray, k=k) if k != 0 else gray
         scores[k] = _ocr_word_score(rotated)
 
-    best_k = max(scores, key=scores.get)
+    best_k = max(scores, key=lambda k: scores[k])
     best_score = scores[best_k]
     current_score = scores[0]
 
