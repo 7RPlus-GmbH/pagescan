@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_MODEL_NAME = "sam_hq_vit_b.pth"
 MODEL_TYPE = "vit_b"
+HF_REPO_ID = "7rplus/pagescan-weights"
 
 _DATA_MODEL_DIR = Path(__file__).resolve().parent.parent.parent / "data" / "model"
 
@@ -40,18 +41,17 @@ def _get_cache_dir() -> Path:
 
 
 def _ensure_model() -> Path:
-    """Locate the HQ-SAM checkpoint. Search order: project data/, user cache."""
+    """Locate the HQ-SAM checkpoint. Search order: project data/, user cache, HF Hub."""
     local = _DATA_MODEL_DIR / DEFAULT_MODEL_NAME
     if local.exists() and local.stat().st_size > 100_000_000:
         return local
     cache_path = _get_cache_dir() / DEFAULT_MODEL_NAME
     if cache_path.exists() and cache_path.stat().st_size > 100_000_000:
         return cache_path
-    raise FileNotFoundError(
-        f"HQ-SAM checkpoint '{DEFAULT_MODEL_NAME}' not found in "
-        f"{_DATA_MODEL_DIR} or {cache_path}. The cascade is unavailable; "
-        f"pagescan will fall back to the legacy SA24+LCNet pipeline."
-    )
+
+    from huggingface_hub import hf_hub_download
+    logger.info(f"Downloading {DEFAULT_MODEL_NAME} from {HF_REPO_ID} (first run, ~360 MB)...")
+    return Path(hf_hub_download(repo_id=HF_REPO_ID, filename=DEFAULT_MODEL_NAME))
 
 
 def _get_predictor():
