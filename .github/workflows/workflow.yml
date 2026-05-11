@@ -1,26 +1,31 @@
-# Publish pagescan to PyPI on version-tag push.
+# Publish pagescan to PyPI (or TestPyPI for release candidates) on version-tag push.
 #
-# Uses PyPI's OIDC trusted publishing — no API tokens, no long-lived secrets.
-# The matching pending publisher is configured at
-# https://pypi.org/manage/account/publishing/ with:
+# Tag routing:
+#   v0.1.0          -> PyPI (production)        + GitHub Release
+#   v0.1.0-rc.1     -> TestPyPI (staging)       + GitHub Pre-release
+#   v0.1.0-rc.2     -> TestPyPI (staging)       + GitHub Pre-release
 #
-#     PyPI project name:   pagescan
-#     Owner:               7RPlus-GmbH
-#     Repository name:     pagescan
-#     Workflow filename:   workflow.yml         <- this file
-#     Environment name:    pagescan             <- declared below in the publish job
+# Uses PyPI / TestPyPI OIDC trusted publishing — no API tokens, no long-lived
+# secrets. The matching pending publishers are configured at:
+#
+#   https://pypi.org/manage/account/publishing/        (environment: pagescan)
+#   https://test.pypi.org/manage/account/publishing/   (environment: pagescan-test)
+#
+# Both publishers point at:
+#   Owner:             7RPlus-GmbH
+#   Repository name:   pagescan
+#   Workflow filename: workflow.yml      <- this file
+#
+# Both `pagescan` and `pagescan-test` environments must exist under
+# Settings -> Environments in the GitHub repo (created automatically the first
+# time each workflow job runs, or set up in advance with required reviewers).
 #
 # To release:
-#     git tag v0.1.0
-#     git push origin v0.1.0
+#   git tag v0.1.0-rc.1 && git push origin v0.1.0-rc.1    # stage to TestPyPI
+#   git tag v0.1.0      && git push origin v0.1.0         # ship to PyPI
 #
-# The "pagescan" environment must also exist under
-# Settings -> Environments in the GitHub repo (created automatically the first
-# time this workflow runs, or set up in advance with required reviewers).
-#
-# A separate CI workflow (PLAN.md week 5) covers per-PR test + lint + matrix
-# build. This file only handles releases.
-name: Publish to PyPI
+# A separate CI workflow (.github/workflows/ci.yml) covers per-PR lint + test.
+name: Publish
 
 on:
   push:
@@ -60,9 +65,32 @@ jobs:
           path: dist/
           if-no-files-found: error
 
-  publish:
+  publish-testpypi:
+    name: Publish to TestPyPI
+    needs: build
+    if: contains(github.ref, '-rc')
+    runs-on: ubuntu-latest
+    environment:
+      name: pagescan-test
+      url: https://test.pypi.org/project/pagescan/
+    permissions:
+      id-token: write    # required for OIDC trusted publishing
+    steps:
+      - name: Download distribution artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: pagescan-dist
+          path: dist/
+
+      - name: Publish to TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+
+  publish-pypi:
     name: Publish to PyPI
     needs: build
+    if: ${{ !contains(github.ref, '-rc') }}
     runs-on: ubuntu-latest
     environment:
       name: pagescan
@@ -80,3 +108,23 @@ jobs:
         # No `password` / `user` inputs — auth comes from the OIDC token,
         # exchanged for a short-lived upload token by PyPI.
         uses: pypa/gh-action-pypi-publish@release/v1
+
+  github-release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write    # required to create releases and upload assets
+    steps:
+      - name: Download distribution artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: pagescan-dist
+          path: dist/
+
+      - name: Create release with sdist + wheel attached
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          prerelease: ${{ contains(github.ref, '-rc') }}
+          generate_release_notes: true
