@@ -25,3 +25,16 @@ html[data-theme="dark"] {
   font-weight: 600;
   letter-spacing: -0.01em;
 }
+
+/* sphinxcontrib-mermaid pins SVGs to height: 500px, which squashes
+   multi-node flowcharts and shrinks labels to unreadable. Let them
+   grow to natural height instead. */
+pre.mermaid > svg,
+.mermaid-container > pre > svg {
+  height: auto !important;
+  max-height: none !important;
+  width: 100% !important;
+  max-width: 900px !important;
+  margin: 0 auto;
+  display: block;
+}

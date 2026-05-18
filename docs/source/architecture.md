@@ -5,7 +5,8 @@ pagescan turns a phone photo into a clean PDF by running a *cascade* of vision m
 ## Pipeline overview
 
 ```{mermaid}
-flowchart LR
+%%{init: {'theme':'base','themeVariables':{'fontSize':'18px','fontFamily':'-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif','primaryColor':'#f8fafc','primaryBorderColor':'#334155','primaryTextColor':'#0f172a','lineColor':'#475569'}}}%%
+flowchart TB
     A[Input photo] --> B[YOLO11 detector]
     B -->|bbox| C[HQ-SAM ViT-B segmenter]
     C -->|mask| D[Quad fit<br/>hull → polyDP]
@@ -22,12 +23,10 @@ flowchart LR
     I --> J[Enhancement<br/>shadow + WB + sharpen]
     J --> K[PDF output]
 
-    style B fill:#dbeafe,stroke:#2563eb
-    style C fill:#dbeafe,stroke:#2563eb
-    style D fill:#dbeafe,stroke:#2563eb
-    style E fill:#dbeafe,stroke:#2563eb
-    style G fill:#fef3c7,stroke:#d97706
-    style H fill:#fef3c7,stroke:#d97706
+    classDef cascade fill:#2563eb,stroke:#1e3a8a,stroke-width:2px,color:#ffffff
+    classDef fallback fill:#d97706,stroke:#7c2d12,stroke-width:2px,color:#ffffff
+    class B,C,D,E cascade
+    class G,H fallback
 ```
 
 Solid arrows are the **production cascade**. Dashed arrows are **fallback paths** when the primary chain fails or its dependencies aren't installed.
