@@ -1,5 +1,7 @@
 """Perspective transform and A4/canvas placement."""
 
+from __future__ import annotations
+
 import logging
 
 import cv2
