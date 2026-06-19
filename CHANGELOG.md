@@ -28,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Dead-code paths in `edges.py` (`trim_edges`, `find_precise_edges`, `find_receipt_bounds`).
 
-## [0.0.1] — internal
+## [0.0.2] — internal
 
 Initial private prototype. SA24 + LCNet + DeepLabV3 corner-detection chain,
 edge fallback, perspective transform, A4 PDF output, document-orientation
