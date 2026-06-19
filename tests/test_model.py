@@ -211,7 +211,7 @@ class TestEnsureModel:
         _make_big_file(cached)
         assert m._ensure_model("sa24") == cached
 
-    def test_downloads_from_hf_first(self, isolated_dirs, monkeypatch):
+    def test_downloads_from_gdrive_first(self, isolated_dirs, monkeypatch):
         _, cache_dir = isolated_dirs
         filename = m.MODELS["sa24"]["filename"]
         calls = []
@@ -219,27 +219,6 @@ class TestEnsureModel:
         def fake_hf(fn, dest):
             calls.append("hf")
             _make_big_file(dest)
-
-        def fake_gdrive(file_id, dest):
-            calls.append("gdrive")
-            _make_big_file(dest)
-
-        monkeypatch.setattr(m, "_download_from_hf", fake_hf)
-        monkeypatch.setattr(m, "_download_from_gdrive", fake_gdrive)
-
-        result = m._ensure_model("sa24")
-        assert result == cache_dir / filename
-        # HF tried first and succeeded; gdrive never touched
-        assert calls == ["hf"]
-
-    def test_falls_back_to_gdrive(self, isolated_dirs, monkeypatch):
-        _, cache_dir = isolated_dirs
-        filename = m.MODELS["sa24"]["filename"]
-        calls = []
-
-        def fake_hf(fn, dest):
-            calls.append("hf")
-            raise RuntimeError("HF down")
 
         def fake_gdrive(file_id, dest):
             calls.append("gdrive")
@@ -251,7 +230,29 @@ class TestEnsureModel:
 
         result = m._ensure_model("sa24")
         assert result == cache_dir / filename
-        assert calls == ["hf", "gdrive"]
+        # gdrive (original upstream) tried first and succeeded; HF never touched
+        assert calls == ["gdrive"]
+
+    def test_falls_back_to_hf_mirror(self, isolated_dirs, monkeypatch):
+        _, cache_dir = isolated_dirs
+        filename = m.MODELS["sa24"]["filename"]
+        calls = []
+
+        def fake_gdrive(file_id, dest):
+            calls.append("gdrive")
+            raise RuntimeError("Drive down")
+
+        def fake_hf(fn, dest):
+            calls.append("hf")
+            assert fn == filename
+            _make_big_file(dest)
+
+        monkeypatch.setattr(m, "_download_from_hf", fake_hf)
+        monkeypatch.setattr(m, "_download_from_gdrive", fake_gdrive)
+
+        result = m._ensure_model("sa24")
+        assert result == cache_dir / filename
+        assert calls == ["gdrive", "hf"]
 
     def test_both_fail_raises_filenotfound(self, isolated_dirs, monkeypatch):
         def fake_hf(fn, dest):

@@ -6,9 +6,9 @@ Multi-model approach:
 - **Fallback:** LCNet100 heatmap regression — different backbone, catches images where SA24 fails.
 - **Conservative:** DeepLabV3-MobileNetV3 segmentation — pixel-level mask, used in conservative crop fallback only.
 
-All models are ONNX and downloaded automatically on first use from the
-Hugging Face Hub mirror (``7rplus/pagescan-weights``), falling back to
-DocsaidLab's Google Drive (the original DocAligner upstream) if the mirror
+All models are ONNX and downloaded automatically on first use from
+DocsaidLab's Google Drive (the original DocAligner upstream), falling back
+to the 7rplus Hugging Face Hub mirror (``7rplus/pagescan-weights``) if Drive
 is unavailable.
 """
 from __future__ import annotations
@@ -51,9 +51,9 @@ MODELS: dict[str, dict[str, Any]] = {
 
 HEATMAP_THRESHOLD = 0.1
 
-# Hugging Face Hub mirror for the legacy weights — the primary download
-# source. DocsaidLab's Google Drive (the `gdrive_id` on each model) is the
-# upstream fallback, used only if the HF mirror is unreachable.
+# 7rplus Hugging Face Hub mirror for the legacy weights — the fallback,
+# used only if the original DocsaidLab Google Drive source (the `gdrive_id`
+# on each model) is unreachable.
 HF_REPO_ID = "7rplus/pagescan-weights"
 
 _sessions: dict[str, Any] = {}  # model_name -> ort.InferenceSession
@@ -97,13 +97,10 @@ def _download_from_hf(filename: str, dest: Path) -> None:
 def _ensure_model(name: str) -> Path:
     """Ensure an ONNX model is available, downloading if needed.
 
-    Search order: data/model/ (project-local) → cache dir → Hugging Face Hub
-    mirror (primary download) → DocsaidLab Google Drive (upstream fallback).
-
-    The legacy weights are DocAligner models (DocsaidLab); the canonical
-    upstream is their auto-downloader with no stable public URL, so the HF
-    mirror at ``HF_REPO_ID`` is the reliable primary source and Google Drive
-    is only used if the mirror is unreachable.
+    Search order: data/model/ (project-local) → cache dir → DocsaidLab Google
+    Drive (the original DocAligner upstream, primary) → 7rplus Hugging Face Hub
+    mirror (``HF_REPO_ID``, fallback). The Drive link is DocsaidLab's own
+    distribution; the HF mirror is used only if Drive is unreachable.
     """
     info = MODELS[name]
     filename = info['filename']
@@ -118,28 +115,25 @@ def _ensure_model(name: str) -> Path:
     if model_path.exists() and model_path.stat().st_size > 100_000:
         return model_path
 
-    # 3. Download from the HF Hub mirror (primary); Google Drive is the fallback.
-    try:
-        _download_from_hf(filename, model_path)
-        return model_path
-    except Exception as hf_err:
-        gdrive_id = info.get('gdrive_id')
-        if gdrive_id is None:
-            raise FileNotFoundError(
-                f"Model '{name}' ({filename}) not found in {local_path} or "
-                f"{model_path}, and the HF Hub mirror ({HF_REPO_ID}) failed: {hf_err}"
-            ) from hf_err
-        logger.warning(f"  HF Hub download failed for {filename}: {hf_err}; "
-                       f"falling back to Google Drive (upstream)")
+    # 3. Download from DocsaidLab Google Drive (the original DocAligner upstream,
+    #    primary); the 7rplus HF mirror is the fallback.
+    gdrive_id = info.get('gdrive_id')
+    if gdrive_id is not None:
         try:
             _download_from_gdrive(gdrive_id, model_path)
             return model_path
         except Exception as gd_err:
-            raise FileNotFoundError(
-                f"Model '{name}' ({filename}) not found locally; both the HF Hub "
-                f"mirror ({HF_REPO_ID}) and Google Drive failed "
-                f"(HF: {hf_err}; Drive: {gd_err})"
-            ) from gd_err
+            logger.warning(f"  Google Drive download failed for {filename}: {gd_err}; "
+                           f"falling back to HF Hub mirror")
+
+    try:
+        _download_from_hf(filename, model_path)
+        return model_path
+    except Exception as hf_err:
+        raise FileNotFoundError(
+            f"Model '{name}' ({filename}) not found in {local_path} or {model_path}, "
+            f"and both Google Drive and the HF Hub mirror ({HF_REPO_ID}) failed: {hf_err}"
+        ) from hf_err
 
 
 def _get_session(name: str):
