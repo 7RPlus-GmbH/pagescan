@@ -24,6 +24,18 @@ class ScanConfig:
         output_margin: Margin in pixels when placing document on canvas.
         jpeg_quality: JPEG quality for PDF embedding (lower = smaller file).
         auto_orient: Run OCR-based auto-rotation to fix document orientation.
+        ocr_lang: Tesseract language(s) for the OCR orientation cross-check.
+            Accepts any Tesseract language code, or several joined with ``+``
+            (e.g. ``"eng+deu+fra+spa+ita+jpn"``, ``"eng"``, ``"fra+jpn"``).
+            Used only when ``auto_orient`` is True and Tesseract is installed,
+            and only as a tiebreaker on ambiguous orientations — not on every
+            scan. Requested packs that aren't installed are dropped
+            automatically (it uses whatever is available), so a multilingual
+            default is safe; a wholly-uninstalled set degrades to the
+            CNN-only orientation heuristic. Default
+            ``"eng+deu+fra+spa+ita+jpn"`` targets common business-document
+            languages — set it to match your own corpus to keep the
+            cross-check fast and focused.
         deskew: Run Hough-based deskew to correct text tilt.
         enhance: Apply scan-like enhancement (grayscale, contrast, sharpen).
         shadow_removal: Apply illumination normalization before enhancement.
@@ -60,6 +72,7 @@ class ScanConfig:
 
     # Pipeline toggles
     auto_orient: bool = True
+    ocr_lang: str = "eng+deu+fra+spa+ita+jpn"
     deskew: bool = True
     enhance: bool = True
     shadow_removal: bool = True

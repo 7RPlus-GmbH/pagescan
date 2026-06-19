@@ -21,9 +21,14 @@ The pre-trained models (~50 MB) download from Hugging Face Hub on first use and 
 **Optional system dependency** for orientation cross-check: [Tesseract OCR](https://github.com/tesseract-ocr/tesseract).
 
 ```bash
-sudo apt install tesseract-ocr tesseract-ocr-deu   # Ubuntu/Debian
-brew install tesseract                              # macOS
+sudo apt install tesseract-ocr tesseract-ocr-deu   # Ubuntu/Debian (+ a language pack)
+brew install tesseract                              # macOS (bundles many languages)
 ```
+
+Install one language pack per document language you scan, e.g. `tesseract-ocr-fra`,
+`tesseract-ocr-spa`, `tesseract-ocr-ita`, `tesseract-ocr-jpn`, then set
+`ScanConfig.ocr_lang` accordingly (default `"eng+deu+fra+spa+ita+jpn"`). pagescan
+uses whichever requested packs are actually installed and ignores the rest.
 
 Without Tesseract, pagescan still works — orientation falls back to a CNN-only heuristic.
 

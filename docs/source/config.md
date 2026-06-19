@@ -47,6 +47,7 @@ ScanConfig(output_width=2550, output_height=3300)
 | Field | Type | Default | What it controls |
 |---|---|---|---|
 | `auto_orient` | `bool` | `True` | OCR-based 90/180/270° rotation correction. Disable when input orientation is known. |
+| `ocr_lang` | `str` | `"eng+deu+fra+spa+ita+jpn"` | Tesseract language(s) for the OCR orientation cross-check (a tiebreaker on ambiguous orientations, not run on every scan). Any code(s) joined with `+`. Uninstalled packs are dropped automatically, so a multilingual default is safe; set it to your corpus to keep the check fast. |
 | `deskew` | `bool` | `True` | Hough-based skew correction for residual text tilt after perspective. |
 | `enhance` | `bool` | `True` | Master switch for the enhancement stages. |
 | `shadow_removal` | `bool` | `True` | Illumination normalisation before enhancement. |

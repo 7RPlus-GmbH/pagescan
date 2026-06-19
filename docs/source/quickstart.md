@@ -14,7 +14,7 @@ The return dict tells you:
 
 - `success` — `True` / `False`
 - `output_path` — absolute path to the produced PDF
-- `method` — `"cascade"`, `"docaligner"` (legacy ML), or `"conservative"` (fallback)
+- `method` — `"cascade"`, `"legacy"` (legacy ML), or `"conservative"` (fallback)
 - `quality_score` — `0.0`–`1.0` heuristic confidence
 - `message` — human-readable description of what happened
 
@@ -24,10 +24,11 @@ The return dict tells you:
 import pagescan
 
 summary = pagescan.scan_batch("input_photos/", "output_pdfs/")
-print(f"Processed {summary['ok']}/{summary['total']} photos")
+print(f"Processed {summary['processed']}, "
+      f"low quality {summary['low_quality']}, failed {summary['failed']}")
 ```
 
-By default this uses all CPU cores. Cap parallelism if you need to:
+By default this uses `min(4, cpu_count)` workers. Cap parallelism if you need to:
 
 ```python
 pagescan.scan_batch("input/", "output/", workers=4)
@@ -65,7 +66,7 @@ pagescan --batch --input-dir photos/ --output-dir scans/ --workers 4
 pagescan photo.jpg --raw
 
 # Specific config knobs
-pagescan photo.jpg out.pdf --jpeg-quality 80 --no-shadow-removal
+pagescan photo.jpg out.pdf --quality 80 --no-deskew
 ```
 
 Run `pagescan --help` for the full flag list.
@@ -92,7 +93,7 @@ from pagescan import ScanConfig, scan
 
 config = ScanConfig(debug=True, debug_dir="./debug/")
 scan("photo.jpg", "out.pdf", config=config)
-# ./debug/ now contains: corners.jpg, transformed.jpg, enhanced.jpg, ...
+# ./debug/ now contains: corners.jpg, enhanced_color.jpg, result.jpg
 ```
 
 ### Don't ship a PDF, just get the corrected image
@@ -101,11 +102,16 @@ You can call the pipeline pieces directly:
 
 ```python
 import cv2
+import numpy as np
 from pagescan.corners import detect_corners
 from pagescan.transform import perspective_transform
 
 img = cv2.imread("photo.jpg")
-corners, _ = detect_corners(img)
-straight = perspective_transform(img, corners)
-cv2.imwrite("straight.jpg", straight)
+# detect_corners returns (corners, rotation_k, method); corners is None on failure
+corners, rotation_k, method = detect_corners(img)
+if corners is not None:
+    if rotation_k:
+        img = np.rot90(img, k=rotation_k)
+    straight = perspective_transform(img, corners)
+    cv2.imwrite("straight.jpg", straight)
 ```

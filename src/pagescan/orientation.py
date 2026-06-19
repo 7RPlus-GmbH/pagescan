@@ -182,20 +182,65 @@ def deskew(image: np.ndarray) -> tuple[np.ndarray, float]:
     return rotated, median_angle
 
 
-def _ocr_word_score(gray_image: np.ndarray) -> int:
-    """Count high-confidence OCR words as a proxy for correct orientation."""
+DEFAULT_OCR_LANG = "eng+deu+fra+spa+ita+jpn"
+
+_available_ocr_langs: set[str] | None = None
+_ocr_langs_probed = False
+
+
+def _effective_ocr_lang(lang: str) -> str:
+    """Restrict a requested Tesseract language string to installed packs.
+
+    Companies scan documents in many languages, so `lang` may request more
+    packs than a given host has installed (e.g. "eng+deu+fra+spa+ita+jpn").
+    Rather than letting one missing pack make the whole OCR call fail, we
+    intersect the request with the packs Tesseract actually has and use
+    whatever is available. Returns a '+'-joined subset, or '' if none of the
+    requested languages are installed. The installed set is probed once and
+    cached.
+    """
+    global _available_ocr_langs, _ocr_langs_probed
+    if not _ocr_langs_probed:
+        _ocr_langs_probed = True
+        try:
+            import pytesseract
+            _available_ocr_langs = set(pytesseract.get_languages(config=''))
+        except Exception:
+            _available_ocr_langs = None
+
+    requested = [p for p in lang.split('+') if p]
+    if _available_ocr_langs is None:
+        return lang  # can't introspect — let pytesseract try the request as-is
+    keep = [p for p in requested if p in _available_ocr_langs]
+    dropped = [p for p in requested if p not in _available_ocr_langs]
+    if dropped:
+        logger.warning(f"  OCR language pack(s) not installed, skipping: "
+                       f"{'+'.join(dropped)} (e.g. apt install tesseract-ocr-{dropped[0]})")
+    return '+'.join(keep)
+
+
+def _ocr_word_score(gray_image: np.ndarray, lang: str = DEFAULT_OCR_LANG) -> int:
+    """Count high-confidence OCR words as a proxy for correct orientation.
+
+    `lang` is a Tesseract language string (e.g. "eng+deu+fra"). It is first
+    restricted to installed packs via `_effective_ocr_lang`; if none are
+    available the score is 0 and the caller relies on the CNN.
+    """
     try:
         import pytesseract
         from pytesseract import Output
+        eff_lang = _effective_ocr_lang(lang)
+        if not eff_lang:
+            return 0
         data = pytesseract.image_to_data(
-            gray_image, lang='deu', config='--psm 6',
+            gray_image, lang=eff_lang, config='--psm 6',
             output_type=Output.DICT)
         return sum(1 for c in data['conf'] if int(c) > 50)
     except Exception:
         return 0
 
 
-def auto_rotate(image: np.ndarray) -> np.ndarray:
+def auto_rotate(image: np.ndarray, lang: str = DEFAULT_OCR_LANG) -> np.ndarray:
     """Auto-rotate document to correct orientation.
 
     Strategy:
@@ -207,6 +252,9 @@ def auto_rotate(image: np.ndarray) -> np.ndarray:
     The CNN model (docTR MobileNetV3-Small) is fast (~6ms) but has a known
     weakness for 180° detection. OCR verification adds ~2s but prevents
     wrong 180° flips.
+
+    `lang` is the Tesseract language string used for the OCR cross-check
+    (see `ScanConfig.ocr_lang`).
     """
     k_map = {-90: 3, 180: 2, 90: 1}
 
@@ -240,8 +288,8 @@ def auto_rotate(image: np.ndarray) -> np.ndarray:
 
     if cnn_conf >= 0.6 and correction_angle == 180:
         # CNN says 180 — verify with OCR (only check 0 vs 180, skip 90/270)
-        score_0 = _ocr_word_score(gray)
-        score_180 = _ocr_word_score(np.rot90(gray, k=2))
+        score_0 = _ocr_word_score(gray, lang)
+        score_180 = _ocr_word_score(np.rot90(gray, k=2), lang)
 
         if score_180 > score_0 * 1.2 and score_180 >= 3:
             logger.info(f"  Auto-rotating 180 CCW (CNN+OCR agree: 180={score_180} vs 0={score_0})")
@@ -260,7 +308,7 @@ def auto_rotate(image: np.ndarray) -> np.ndarray:
     scores = {}
     for k in [0, 1, 2, 3]:
         rotated = np.rot90(gray, k=k) if k != 0 else gray
-        scores[k] = _ocr_word_score(rotated)
+        scores[k] = _ocr_word_score(rotated, lang)
 
     best_k = max(scores, key=lambda k: scores[k])
     best_score = scores[best_k]

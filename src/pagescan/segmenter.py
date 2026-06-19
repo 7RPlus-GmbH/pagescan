@@ -93,7 +93,6 @@ def segment(image: np.ndarray, bbox: np.ndarray) -> np.ndarray | None:
         import torch
     except ImportError as e:
         raise ImportError("torch is required for HQ-SAM") from e
-    import torch
 
     predictor = _get_predictor()
     rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)

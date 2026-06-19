@@ -12,7 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New ML pipeline: YOLO11n document detector → HQ-SAM ViT-B box-prompted segmentation → quad fit. Replaces the legacy SA24 + LCNet + DeepLabV3 chain (kept as fallback).
 - Over-crop guard on the ML path (regression fix; the conservative path already had one).
 - Real benchmark suite measuring detection IoU, corner pixel error, OCR word-error rate, and end-to-end visual quality against `docscan` and the OpenCV contour scanner.
-- Cascade weights mirrored to Hugging Face Hub at [`7rplus/pagescan-weights`](https://huggingface.co/7rplus/pagescan-weights); auto-downloaded on first use via `huggingface_hub`. No more Google Drive dependency.
+- Cascade weights (YOLO11n + HQ-SAM ViT-B) hosted on Hugging Face Hub at [`7rplus/pagescan-weights`](https://huggingface.co/7rplus/pagescan-weights); auto-downloaded on first use via `huggingface_hub`.
+- Legacy ONNX weights (DocAligner SA24 / LCNet + a DeepLabV3 doc-segmentation net) now download from the Hugging Face mirror ([`7rplus/pagescan-weights`](https://huggingface.co/7rplus/pagescan-weights)) as the primary source, with DocsaidLab's Google Drive (the original DocAligner upstream) as a transparent fallback. Replaces the previous Google-Drive-only path.
+- PDF page size now follows the configured canvas (`output_width` / `output_height` / `output_dpi`) instead of always being A4 — `PRESET_LETTER_300` now produces a genuine US Letter page.
+- OCR orientation cross-check language is configurable via `ScanConfig.ocr_lang` (default `"eng+deu+fra+spa+ita+jpn"`); previously hard-coded to German only. Requested language packs that aren't installed are dropped automatically, so multilingual document sets work out of the box with whatever Tesseract packs are present.
 - Sphinx documentation site (pydata-sphinx-theme + MyST markdown) covering install, quickstart, architecture, full `ScanConfig` reference, benchmark methodology, troubleshooting, and autodoc-generated API reference. Auto-deploys to GitHub Pages on push to `main`.
 - `examples/quickstart.ipynb` — runnable end-to-end notebook covering single scan, batch, custom config, debug visualisation, and the optional ML cascade path.
 - CI: ruff + mypy on Python 3.12; pytest matrix on Python 3.9–3.13 (`.github/workflows/ci.yml`).

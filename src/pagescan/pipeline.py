@@ -144,7 +144,9 @@ def scan(image_path: str, output_path: str | None = None,
         h, w = image.shape[:2]
 
     if ml_corners is not None:
-        method = ml_method or 'docaligner'   # "cascade" or "legacy"
+        # ml_method is always "cascade" or "legacy" when corners were found.
+        method = ml_method
+        assert method is not None
         corners = ml_corners
     else:
         method = 'conservative'
@@ -177,7 +179,7 @@ def scan(image_path: str, output_path: str | None = None,
 
     # -- Auto-rotate FIRST (text must be horizontal before deskew) --
     if config.auto_orient:
-        document = auto_rotate(document)
+        document = auto_rotate(document, lang=config.ocr_lang)
 
     # -- Deskew --
     if config.deskew:
