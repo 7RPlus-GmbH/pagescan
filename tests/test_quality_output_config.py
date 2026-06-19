@@ -45,7 +45,7 @@ def _fill_corner(img: np.ndarray, corner: str, frac: float) -> None:
     The patch is EDGE rows x EDGE cols; we paint the first ``round(frac*EDGE)``
     *rows* of the patch so the matched-pixel ratio equals that fraction.
     """
-    rows = int(round(frac * EDGE))
+    rows = round(frac * EDGE)
     if corner == "tl":
         img[0:rows, 0:EDGE] = BROWN_BGR
     elif corner == "tr":
@@ -254,7 +254,7 @@ def test_default_field_values():
     assert cfg.shadow_removal is True
     assert cfg.white_balance is True
     assert cfg.use_ml is True
-    assert cfg.use_cascade is True
+    assert cfg.use_cascade is False  # legacy is the default path on v1 weights
     assert cfg.detector_conf_threshold == 0.25
     assert cfg.min_doc_coverage == 0.05
     assert cfg.debug is False
@@ -262,7 +262,7 @@ def test_default_field_values():
 
 
 def test_preset_a4_equals_default():
-    assert PRESET_A4_300 == ScanConfig()
+    assert ScanConfig() == PRESET_A4_300
 
 
 def test_preset_letter_differs_from_a4():
@@ -270,20 +270,20 @@ def test_preset_letter_differs_from_a4():
     assert PRESET_LETTER_300.output_height == 3300
     assert PRESET_LETTER_300 != PRESET_A4_300
     # Only the dimensions differ from the A4 default.
-    assert PRESET_LETTER_300 == ScanConfig(output_width=2550, output_height=3300)
+    assert ScanConfig(output_width=2550, output_height=3300) == PRESET_LETTER_300
 
 
 def test_preset_fast():
     assert PRESET_FAST.use_ml is False
     assert PRESET_FAST.auto_orient is False
     # Everything else stays at the default.
-    assert PRESET_FAST == ScanConfig(use_ml=False, auto_orient=False)
+    assert ScanConfig(use_ml=False, auto_orient=False) == PRESET_FAST
 
 
 def test_preset_raw():
     assert PRESET_RAW.enhance is False
     assert PRESET_RAW.shadow_removal is False
     assert PRESET_RAW.white_balance is False
-    assert PRESET_RAW == ScanConfig(
+    assert ScanConfig(
         enhance=False, shadow_removal=False, white_balance=False
-    )
+    ) == PRESET_RAW

@@ -58,7 +58,7 @@ ScanConfig(output_width=2550, output_height=3300)
 
 | Field | Type | Default | What it controls |
 |---|---|---|---|
-| `use_cascade` | `bool` | `True` | Use the YOLO + HQ-SAM cascade as the primary ML detection path. When `False` (or when the cascade weights are missing), pagescan falls back to the legacy SA24+LCNet ML chain. The cascade requires the `[ml]` extras. |
+| `use_cascade` | `bool` | `False` | Use the YOLO + HQ-SAM cascade instead of the legacy SA24+LCNet ML chain. Defaults to `False`: on v1 weights legacy beats the cascade on the April benchmark (44/50 vs 35/50 at IoU≥0.90) and is ~75× faster. Set `True` to opt into the cascade (needs the `[ml]` extras); it becomes the default once the v2 YOLO lands. |
 | `detector_conf_threshold` | `float` | `0.25` | Minimum YOLO confidence for accepting a detection. Below this, cascade falls through to legacy. |
 | `min_doc_coverage` | `float` | `0.05` | Over-crop guard. Predicted quads with area below this fraction of the image are rejected as too small (typical failure: SAM segments an inner text block instead of the full page). Raise toward `0.10` if your documents always fill ≥10% of the frame. |
 

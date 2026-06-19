@@ -13,7 +13,6 @@ import pytest
 
 from pagescan import model as m
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -269,7 +268,7 @@ class TestEnsureModel:
 
     def test_hf_fails_no_gdrive_id_raises(self, isolated_dirs, monkeypatch):
         """A model without a gdrive_id raises FileNotFoundError directly."""
-        _, cache_dir = isolated_dirs
+        _, _cache_dir = isolated_dirs
         # Register a temporary model entry lacking gdrive_id.
         monkeypatch.setitem(
             m.MODELS, "no_gd",

@@ -8,7 +8,6 @@ from __future__ import annotations
 import sys
 import types
 
-import cv2
 import numpy as np
 import pytest
 
@@ -61,7 +60,7 @@ def _install_fake_hf(monkeypatch, returns_path):
 def test_letterbox_canvas_shape_dtype_and_ratio():
     h, w = 600, 1000
     img = np.zeros((h, w, 3), dtype=np.uint8)
-    canvas, ratio, (pad_x, pad_y) = detector._letterbox(img)
+    canvas, ratio, (_pad_x, _pad_y) = detector._letterbox(img)
 
     assert canvas.shape == (detector.INPUT_SIZE, detector.INPUT_SIZE, 3)
     assert canvas.dtype == np.uint8
@@ -92,7 +91,7 @@ def test_letterbox_point_roundtrips():
     """A point in the original maps through ratio+pad into the canvas region."""
     h, w = 600, 1000
     img = np.zeros((h, w, 3), dtype=np.uint8)
-    canvas, ratio, (pad_x, pad_y) = detector._letterbox(img)
+    _canvas, ratio, (pad_x, pad_y) = detector._letterbox(img)
 
     # Original centre.
     ox, oy = w / 2.0, h / 2.0
@@ -217,7 +216,7 @@ def test_detect_clamps_to_image_bounds(monkeypatch):
     fake = _FakeSession(_make_output_5xN(boxes, [0.99]))
     monkeypatch.setattr(detector, "_get_session", lambda: fake)
 
-    bbox, conf = detector.detect(image, conf_threshold=0.25)
+    bbox, _conf = detector.detect(image, conf_threshold=0.25)
     assert bbox[0] >= 0.0 and bbox[1] >= 0.0
     assert bbox[2] <= w0 - 1 and bbox[3] <= h0 - 1
 
@@ -355,8 +354,8 @@ def test_segment_returns_bool_mask(monkeypatch):
     assert mask is not None
     assert mask.dtype == bool
     assert mask.shape == (h, w)
-    assert mask[50, 50] == True
-    assert mask[0, 0] == False
+    assert mask[50, 50]
+    assert not mask[0, 0]
 
     # Predictor was driven with an RGB image and the box prompt.
     assert fake.set_image_called_with is not None

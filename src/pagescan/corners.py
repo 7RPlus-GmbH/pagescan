@@ -30,14 +30,14 @@ logger = logging.getLogger(__name__)
 try:
     from pagescan import detector, segmenter
     HAS_CASCADE = True
-except ImportError:
+except ImportError:  # pragma: no cover - optional deps absent
     HAS_CASCADE = False
 
 # --- Legacy ML chain (fallback path) ---
 try:
     from pagescan.model import detect_corners_onnx
     HAS_LEGACY_ML = True
-except ImportError:
+except ImportError:  # pragma: no cover - optional deps absent
     HAS_LEGACY_ML = False
 
 

@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Planned for 0.1.0
 
-- New ML pipeline: YOLO11n document detector → HQ-SAM ViT-B box-prompted segmentation → quad fit. Replaces the legacy SA24 + LCNet + DeepLabV3 chain (kept as fallback).
+- New ML pipeline: YOLO11n document detector → HQ-SAM ViT-B box-prompted segmentation → quad fit, available via `ScanConfig(use_cascade=True)`. On the current v1 weights the legacy SA24 + LCNet chain still wins on the April benchmark (44/50 vs 35/50 at IoU≥0.90, ~75× faster), so `use_cascade` **defaults to `False`** for 0.1.0; the cascade becomes the default once the v2 YOLO closes the training-distribution gap. The `benchmark/comparison/sweep_cascade.py` harness produces this comparison.
 - Over-crop guard on the ML path (regression fix; the conservative path already had one).
 - Real benchmark suite measuring detection IoU, corner pixel error, OCR word-error rate, and end-to-end visual quality against `docscan` and the OpenCV contour scanner.
 - Cascade weights (YOLO11n + HQ-SAM ViT-B) hosted on Hugging Face Hub at [`7rplus/pagescan-weights`](https://huggingface.co/7rplus/pagescan-weights); auto-downloaded on first use via `huggingface_hub`.

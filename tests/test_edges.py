@@ -22,7 +22,6 @@ from pagescan.edges import (
     find_paper_contour,
 )
 
-
 # --------------------------------------------------------------------------
 # Image builders
 # --------------------------------------------------------------------------
@@ -196,7 +195,7 @@ class TestFindPaperContour:
         # and not exceed the frame.
         assert left <= PAPER_L and right >= PAPER_R
         assert top <= PAPER_T and bottom >= PAPER_B
-        assert 0 <= left and 0 <= top
+        assert left >= 0 and top >= 0
         assert right <= 800 and bottom <= 1000
 
     def test_crop_is_tight_around_paper(self):
@@ -248,7 +247,7 @@ class TestFindDocumentContours:
     def test_finds_document_and_scores_quad(self):
         scored = _find_document_contours(make_doc())
         assert len(scored) >= 1
-        score, contour, approx = scored[0]
+        score, _contour, approx = scored[0]
         assert score > 0
         # The strong rectangle should approximate to a 4-vertex polygon.
         assert len(approx) == 4
@@ -359,7 +358,7 @@ class TestDetectCornersContour:
         assert corners.shape == (4, 2)
         # A tilted quad has no edge axis-aligned: at least one side must have
         # a meaningful slope in both x and y.
-        ordered = corners[np.argsort(corners[:, 1])]
+        corners[np.argsort(corners[:, 1])]
         # The hull should still cover a large area.
         assert hull_area(corners) > 0.5 * (PAPER_R - PAPER_L) * (PAPER_B - PAPER_T)
 
@@ -394,7 +393,7 @@ class TestFindDocumentEdges:
         top, bottom, left, right = find_document_edges(make_doc())
         assert left <= PAPER_L and right >= PAPER_R
         assert top <= PAPER_T and bottom >= PAPER_B
-        assert 0 <= left and 0 <= top
+        assert left >= 0 and top >= 0
         assert right <= 800 and bottom <= 1000
 
     def test_crop_is_tight(self):
@@ -470,7 +469,7 @@ class TestDetectPaperQuad:
         assert corners.shape == (4, 2)
         assert corners.dtype == np.float32
         # minAreaRect box bounds the triangle (x in [30,770], y in [40,960]).
-        x1, y1, x2, y2 = bbox_of(corners)
+        x1, _y1, x2, y2 = bbox_of(corners)
         assert x1 == pytest.approx(30, abs=50)
         assert x2 == pytest.approx(770, abs=50)
         assert y2 == pytest.approx(960, abs=50)

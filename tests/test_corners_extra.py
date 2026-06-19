@@ -6,7 +6,6 @@ import pytest
 from pagescan import corners
 from pagescan.config import ScanConfig
 
-
 # ---------- geometry helpers ----------
 
 class TestEdgeAngle:
@@ -227,7 +226,7 @@ class TestDetectCornersML:
                             lambda img, cfg: (_ for _ in ()).throw(AssertionError("cascade not expected")))
         monkeypatch.setattr(corners, "_detect_via_legacy", lambda img: _valid_quad())
         cfg = ScanConfig(use_cascade=False)
-        result, method = corners.detect_corners_ml(self._img(), cfg)
+        _result, method = corners.detect_corners_ml(self._img(), cfg)
         assert method == "legacy"
 
 

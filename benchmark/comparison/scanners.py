@@ -55,7 +55,7 @@ class _PagescanBase(Scanner):
         from pagescan.config import ScanConfig
         from pagescan.corners import detect_corners
         cfg = ScanConfig(use_cascade=self.use_cascade)
-        corners, rotation_k = detect_corners(image, cfg)
+        corners, rotation_k, _method = detect_corners(image, cfg)
         if corners is None:
             return None
         if rotation_k != 0:

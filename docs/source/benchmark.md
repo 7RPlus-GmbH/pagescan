@@ -1,6 +1,6 @@
 # Benchmark
 
-pagescan ships with a real-data benchmark harness that compares its scan quality against `docscan` (the most popular Python document scanner on PyPI) and a hand-written OpenCV contour-based scanner. Both pagescan paths — the production cascade and the legacy ML chain — are evaluated separately so you can see the effect of the architecture change.
+pagescan ships with a real-data benchmark harness that compares its scan quality against `docscan` (the most popular Python document scanner on PyPI) and a hand-written OpenCV contour-based scanner. Both pagescan detection paths are evaluated separately: the **legacy ML chain** (SA24 + LCNet), which is the default in 0.1.0, and the **YOLO + HQ-SAM cascade**, which is opt-in (`ScanConfig(use_cascade=True)`) on the current weights. The numbers below are why legacy is the default — see [the use_cascade decision](#use-cascade-default).
 
 ## Methodology
 
@@ -14,29 +14,33 @@ pagescan ships with a real-data benchmark harness that compares its scan quality
   - **Mean PSNR** vs the reference scan — pixel-level reconstruction quality.
   - **Mean WER (word error rate)** of Tesseract output vs the reference — does the final scan still OCR well?
   - **Mean latency** per image on CPU.
-- **Harness:** {file}`benchmark/comparison/run_real.py`. Each scanner runs as a black-box subprocess.
+- **Harness:** {file}`benchmark/comparison/run_real.py`. Each scanner runs in-process through a common adapter (`benchmark/comparison/scanners.py`).
+- **Reference for PSNR/WER:** the image perspective-warped with the *ground-truth* corners — a fair upper bound, not a separate hand-scanned capture.
 
 ## Current results (v1 weights)
 
-50-photo April benchmark, v1 cascade weights:
+50-photo April benchmark, v1 weights. Default path listed first.
 
 | Scanner | Pass ≥ 0.90 | Pass ≥ 0.85 | Mean IoU | Median max-px | Mean PSNR | Mean WER | Mean latency |
 |---|---|---|---|---|---|---|---|
-| **pagescan-cascade** | 35 / 50 | 38 / 50 | 0.857 | **32 px** | **18.7 dB** | 0.53 | 5685 ms |
-| **pagescan-legacy** | **44 / 50** | **44 / 50** | **0.916** | 39 px | 18.1 dB | 0.53 | **73 ms** |
+| **pagescan-legacy** (default) | **44 / 50** | **44 / 50** | **0.916** | 39 px | 18.1 dB | 0.53 | **62 ms** |
+| pagescan-cascade (opt-in) | 35 / 50 | 38 / 50 | 0.857 | **32 px** | **18.7 dB** | 0.53 | 5044 ms |
 | opencv-recipe | 12 / 50 | 12 / 50 | 0.507 | 70 px | 15.1 dB | 0.81 | **10 ms** |
 | docscan | 0 / 50 | 0 / 50 | — | — | 14.3 dB | 0.87 | 0 ms |
 
-**Observations:**
+(`docscan` exposes no corners, so its IoU columns are blank; it is scored on output PSNR/WER only.)
 
-- The legacy ML chain (`pagescan-legacy`) currently *beats* the cascade on pass-rate. This is expected: v1 cascade weights are trained on a 1000-photo December corpus and over-fit to that distribution. The April test set is held-out and probes a slightly different distribution; the legacy chain was trained on a broader corpus and generalises better in this v1 snapshot.
-- However, the cascade's **median max corner pixel error is lower** (32 px vs 39 px) when it succeeds — HQ-SAM produces tighter boundaries. The pass-rate gap is detection misses, not corner-accuracy issues.
-- `docscan` scores 0/50 because it ships with corner-detection heuristics that simply don't fire on phone photos with non-trivial backgrounds. It's tuned for scans of scans, not photos.
-- The OpenCV recipe — a hand-written `cv2.findContours` + `approxPolyDP` pipeline — is the right comparison for "is the ML actually worth it?". Even unoptimised, both pagescan paths beat it by 3–4× on every metric except latency.
+(use-cascade-default)=
 
-## Why these numbers will change before 0.1.0
+**Observations — why legacy is the 0.1.0 default:**
 
-The cascade is currently in its v1 state. A v2 retrain on an extended dataset (≥300 new April-distribution photos + SmartDoc 2015 frames) is in progress and is expected to flip the cascade-vs-legacy comparison. Once v2 lands, this page will be regenerated with the final numbers; the cascade should pull clearly ahead.
+- On the current v1 weights `pagescan-legacy` **wins on pass-rate** (44/50 vs 35/50 at IoU ≥ 0.90), is **~80× faster** (62 ms vs 5 s on CPU), and — critically — **fails less catastrophically**: its mean max-corner error is 133 px vs the cascade's 294 px. When the cascade's YOLO bbox misses on this held-out distribution, HQ-SAM segments the wrong region and the error is large. So pagescan defaults to legacy (`use_cascade=False`).
+- The cascade has the **higher ceiling**, though: better median max-corner error (32 px vs 39 px), more near-perfect detections (pass ≥ 0.95: 28 vs 24), and higher PSNR. When its detector fires correctly, HQ-SAM gives the tightest corners of any path. Enable it with `ScanConfig(use_cascade=True)` (requires the `[ml]` extras). The gap is detector misses, not segmentation quality.
+- `docscan` scores 0/50 — its corner heuristics don't fire on phone photos with non-trivial backgrounds; it's tuned for scans of scans. The OpenCV contour recipe manages 12/50. Both pagescan paths beat these baselines by a wide margin.
+
+## Roadmap: the cascade becomes the default after v2
+
+The cascade is in its v1 state, trained on a 1000-photo December corpus that under-covers the April distribution. A v2 retrain on an extended dataset (≥300 new April-distribution photos + SmartDoc 2015 frames) is the planned path to flip the comparison; the [ceiling benchmark](#ceiling-benchmark) below shows the segmentation is already good enough, so v2 is purely a detector-data effort. When v2 lands and beats legacy on this set, `use_cascade` flips back to `True` and this page is regenerated. You can re-run the head-to-head any time with {file}`benchmark/comparison/sweep_cascade.py`.
 
 If you want to reproduce these numbers locally:
 

@@ -44,9 +44,13 @@ class ScanConfig:
             skips both cascade and legacy ML and goes straight to the
             conservative-crop fallback. Useful for fast/headless modes.
         use_cascade: Use the YOLO11 + HQ-SAM cascade as the primary
-            detection path. When False (or when the cascade weights are
-            missing), pagescan falls back to the legacy SA24+LCNet ML
-            chain. The cascade requires the optional `[ml]` extras.
+            detection path instead of the legacy SA24+LCNet ML chain.
+            Defaults to False: on the current (v1) weights the legacy chain
+            beats the cascade on the April benchmark (44/50 vs 35/50 at
+            IoU>=0.90), is ~75x faster, and fails less catastrophically. The
+            cascade has a higher ceiling and becomes the default again once
+            the v2 YOLO closes the training-distribution gap. Set True to opt
+            in now; it requires the optional `[ml]` extras (torch + HQ-SAM).
         detector_conf_threshold: Minimum YOLO confidence for accepting a
             detection. Below this, cascade falls through to legacy.
         min_doc_coverage: Over-crop guard. Predicted quads whose area is
@@ -80,7 +84,7 @@ class ScanConfig:
     use_ml: bool = True
 
     # ML detection path
-    use_cascade: bool = True
+    use_cascade: bool = False  # legacy beats cascade on v1 weights; see docstring
     detector_conf_threshold: float = 0.25
     min_doc_coverage: float = 0.05
 

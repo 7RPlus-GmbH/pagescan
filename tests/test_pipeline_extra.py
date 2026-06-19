@@ -3,13 +3,12 @@
 ML and edge backends are mocked; no network and no real model weights.
 """
 
-import numpy as np
 import cv2
+import numpy as np
 import pytest
 
 from pagescan import pipeline
 from pagescan.config import ScanConfig
-
 
 # ---------- helpers ----------
 
@@ -35,7 +34,6 @@ def _disable_all_edges(monkeypatch):
     monkeypatch.setattr(pipeline, "detect_paper_quad", lambda img, cfg: None)
     monkeypatch.setattr(pipeline, "detect_corners_segmentation", lambda img: None)
     monkeypatch.setattr(pipeline, "detect_corners_contour", lambda img, cfg: None)
-    h_w = {}
 
     def full_paper(img, cfg):
         h, w = img.shape[:2]
@@ -163,7 +161,7 @@ class TestProcessSingle:
     def test_exception_caught(self, monkeypatch, tmp_path):
         monkeypatch.setattr(pipeline, "scan",
                             lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom")))
-        name, result = pipeline._process_single(
+        _name, result = pipeline._process_single(
             (str(tmp_path / "x.jpg"), str(tmp_path / "x.pdf"), ScanConfig()))
         assert result["success"] is False
         assert "boom" in result["message"]

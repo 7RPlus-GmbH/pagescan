@@ -16,7 +16,6 @@ import pytest
 
 from pagescan import orientation
 
-
 # --------------------------------------------------------------------------
 # Fixtures
 # --------------------------------------------------------------------------
@@ -516,7 +515,7 @@ class TestAutoRotate:
         # First call (score_0) low, second (score_180) high.
         seq = iter([2, 10])
         monkeypatch.setattr(orientation, "_ocr_word_score",
-                            lambda g, l=None: next(seq))
+                            lambda g, lang=None: next(seq))
         out = orientation.auto_rotate(img)
         np.testing.assert_array_equal(out, np.rot90(img, k=2))
 
@@ -528,7 +527,7 @@ class TestAutoRotate:
         # score_0 >= score_180 -> keep as-is.
         seq = iter([10, 2])
         monkeypatch.setattr(orientation, "_ocr_word_score",
-                            lambda g, l=None: next(seq))
+                            lambda g, lang=None: next(seq))
         out = orientation.auto_rotate(img)
         assert out is img
 
@@ -541,7 +540,7 @@ class TestAutoRotate:
         # -> "OCR inconclusive" else branch still rotates k=2.
         seq = iter([10, 11])  # 11 > 10 but 11 < 12; 10 < 11 -> else branch
         monkeypatch.setattr(orientation, "_ocr_word_score",
-                            lambda g, l=None: next(seq))
+                            lambda g, lang=None: next(seq))
         out = orientation.auto_rotate(img)
         np.testing.assert_array_equal(out, np.rot90(img, k=2))
 
@@ -555,7 +554,7 @@ class TestAutoRotate:
         scores = {0: 1, 1: 9, 2: 2, 3: 0}
         calls = {"n": 0}
 
-        def fake_score(rotated, l=None):
+        def fake_score(rotated, lang=None):
             k = calls["n"]
             calls["n"] += 1
             return scores[k]
@@ -574,7 +573,7 @@ class TestAutoRotate:
         scores = {0: 2, 1: 1, 2: 9, 3: 0}  # best_k=2, 9 > 2*1.2, >=3
         calls = {"n": 0}
 
-        def fake_score(rotated, l=None):
+        def fake_score(rotated, lang=None):
             k = calls["n"]
             calls["n"] += 1
             return scores[k]
@@ -593,7 +592,7 @@ class TestAutoRotate:
         scores = {0: 0, 1: 2, 2: 1, 3: 0}
         calls = {"n": 0}
 
-        def fake_score(rotated, l=None):
+        def fake_score(rotated, lang=None):
             k = calls["n"]
             calls["n"] += 1
             return scores[k]
@@ -611,7 +610,7 @@ class TestAutoRotate:
         scores = {0: 0, 1: 0, 2: 0, 3: 0}  # all zero -> no OCR winner
         calls = {"n": 0}
 
-        def fake_score(rotated, l=None):
+        def fake_score(rotated, lang=None):
             k = calls["n"]
             calls["n"] += 1
             return scores[k]
@@ -627,6 +626,6 @@ class TestAutoRotate:
         monkeypatch.setattr(orientation, "classify_orientation",
                             lambda im: (0, 0.2))
         monkeypatch.setitem(sys.modules, "pytesseract", types.ModuleType("pytesseract"))
-        monkeypatch.setattr(orientation, "_ocr_word_score", lambda g, l=None: 0)
+        monkeypatch.setattr(orientation, "_ocr_word_score", lambda g, lang=None: 0)
         out = orientation.auto_rotate(img)
         assert out is img

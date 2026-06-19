@@ -151,7 +151,7 @@ def _find_document_contours(image: np.ndarray):
 
         _bx, _by, bw, bh = cv2.boundingRect(c)
         rect_area = bw * bh
-        if rect_area < 1:
+        if rect_area < 1:  # pragma: no cover - findContours rects are always >=1px
             continue
         rectangularity = area / rect_area
 
