@@ -67,6 +67,41 @@ def make_full_frame_paper(w=800, h=1000):
     return np.full((h, w, 3), 245, np.uint8)
 
 
+def make_sharp_rhombus_doc(w=800, h=1000, bg=(60, 90, 120)):
+    """A tall, sharp rhombus (acute ~35deg apex angles).
+
+    In _find_document_contours every 4-vertex approximation of this shape
+    has two ~35deg and two ~145deg corners, so the angle validation always
+    fails (angles_ok=False / break) and `approx` stays None, exercising the
+    in-loop angle-rejection branch and the `approx is None` default fallback.
+    """
+    img = np.full((h, w, 3), bg, np.uint8)
+    pts = np.array([[400, 80], [520, 500], [400, 920], [280, 500]], np.int32)
+    cv2.fillPoly(img, [pts], (245, 245, 245))
+    return img
+
+
+def make_tiny_dot_doc(w=800, h=1000, bg=(60, 90, 120)):
+    """A small paper dot that survives morphology but stays under the 5%
+    significant-area threshold in detect_paper_quad.
+
+    Used to hit detect_paper_quad's `no significant contours -> return None`
+    branch (contours exist, but none is large enough)."""
+    img = np.full((h, w, 3), bg, np.uint8)
+    cv2.circle(img, (w // 2, h // 2), 100, (245, 245, 245), -1)
+    return img
+
+
+def make_doc_with_speck(w=800, h=1000, bg=(60, 90, 120)):
+    """The standard document plus a tiny separate bright speck.
+
+    The speck is a 2nd contour whose area is below the 5% threshold in
+    _find_document_contours, exercising its small-contour `continue` skip."""
+    img = make_doc(w, h, bg)
+    cv2.rectangle(img, (40, 40), (90, 90), (245, 245, 245), -1)
+    return img
+
+
 def make_small_no_scale_doc(w=400, h=480, bg=(60, 90, 120)):
     """Small frame (max dim <= 500) so _find_document_contours skips resize.
 
@@ -269,6 +304,29 @@ class TestFindDocumentContours:
         _, _, approx = scored[0]
         assert len(approx) != 4
 
+    def test_sharp_rhombus_hits_angle_rejection(self):
+        # Every 4-vert approximation of the sharp rhombus has out-of-range
+        # angles, so the in-loop angle check rejects all of them and the
+        # default approx (line 150) is used instead. Must still produce a
+        # scored contour.
+        scored = _find_document_contours(make_sharp_rhombus_doc())
+        assert scored
+        score, _, approx = scored[0]
+        assert score > 0
+        # The default approx happens to give 4 here, but the point is the
+        # angle-validation branch ran and failed for every eps first.
+        assert len(approx) >= 3
+
+    def test_speck_contour_is_skipped(self):
+        # The big document plus a tiny speck: findContours sees two regions,
+        # but the speck is below the 5% area threshold and is skipped, so
+        # only one contour ends up scored.
+        scored = _find_document_contours(make_doc_with_speck())
+        assert len(scored) == 1
+        _, contour, _ = scored[0]
+        # The single survivor is the big document, not the speck.
+        assert cv2.contourArea(contour) > 0.2 * 800 * 1000
+
 
 # --------------------------------------------------------------------------
 # detect_corners_contour
@@ -390,6 +448,12 @@ class TestDetectPaperQuad:
     def test_blank_no_contours_returns_none(self):
         # Uniform dark frame: paper mask empty -> no contours -> None.
         assert detect_paper_quad(make_blank()) is None
+
+    def test_tiny_dot_no_significant_contour_returns_none(self):
+        # A small dot survives morphology as a contour but stays under the
+        # 5% significant-area threshold -> `significant` is empty -> None.
+        # (Distinct from the no-contours-at-all path.)
+        assert detect_paper_quad(make_tiny_dot_doc()) is None
 
     def test_small_doc_below_coverage_returns_none(self):
         # Small paper passes the 0.05 area filter? It is ~2.8% < 5%, so it is
