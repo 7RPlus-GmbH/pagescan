@@ -1,6 +1,6 @@
 # Contributing to pagescan
 
-pagescan is an open-source product of [7r+ GmbH](https://7rplus.com). We
+pagescan is an open-source product of [7R+ GmbH](https://7rplus.com). We
 welcome bug reports, fixes, and discussion. Before opening a PR, please read
 through.
 
