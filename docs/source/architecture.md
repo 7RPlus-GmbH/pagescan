@@ -91,7 +91,7 @@ The cascade is the *primary* path, but pagescan is built to keep working when it
 | Contour also fails | Returns the original image with a flag set on `result['success']`. |
 | `use_ml=False` | Skips all ML, goes straight to contour fallback. Useful for headless/CI. |
 
-This means a `pip install pagescan` *without* `[ml]` still produces good results — just slightly weaker on hard cases. The cascade is an accuracy upgrade, not a hard requirement.
+This means an install *without* the `[ml]` extras still produces good results — just slightly weaker on hard cases. The cascade is an accuracy upgrade, not a hard requirement.
 
 ## Why a cascade?
 

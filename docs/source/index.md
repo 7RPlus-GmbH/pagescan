@@ -31,7 +31,7 @@ That's it. No service account, no API key, no network round-trip. The pre-traine
 
 - **No cloud round-trip.** Everything runs locally; nothing leaves the machine.
 - **Headless / scriptable.** No GUI, no mobile dependency, batch-friendly.
-- **Open weights.** Hosted on [Hugging Face](https://huggingface.co/7rplus/pagescan-weights) under MIT-compatible licenses; auditable and fine-tunable.
+- **Open weights.** Hosted on [Hugging Face](https://huggingface.co/7rplus/pagescan-weights) under Apache-2.0; auditable and fine-tunable. The library itself is MIT. The corner and segmentation weights derive from [DocAligner](https://github.com/DocsaidLab/DocAligner), [sam-hq](https://github.com/SysCV/sam-hq) and [OnnxTR](https://github.com/felixdittrich92/OnnxTR), all Apache-2.0.
 - **Tuned for real-world phone photos.** Wood tables, uneven lighting, hand occlusion, perspective tilt.
 - **Built for regulated environments.** EU data-residency requirements, on-prem deployments, scriptable pipelines.
 

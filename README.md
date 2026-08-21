@@ -1,8 +1,14 @@
-# pagescan
+<picture>
+  <source media="(prefers-color-scheme: dark)"
+    srcset="https://raw.githubusercontent.com/7RPlus-GmbH/pagescan/main/brand/banners/readme-header-dark-1280x320.png">
+  <img alt="pagescan" width="640"
+    src="https://raw.githubusercontent.com/7RPlus-GmbH/pagescan/main/brand/banners/readme-header-light-1280x320.png">
+</picture>
 
-[![PyPI](https://img.shields.io/pypi/v/pagescan)](https://pypi.org/project/pagescan/)
-[![Python](https://img.shields.io/pypi/pyversions/pagescan)](https://pypi.org/project/pagescan/)
+[![Status](https://img.shields.io/badge/status-in%20development-d97706.svg)](https://pagescan.7rplus.com)
+[![Python](https://img.shields.io/badge/python-3.9%20%E2%80%93%203.13-blue.svg)](pyproject.toml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Weights: Apache-2.0](https://img.shields.io/badge/weights-Apache--2.0-blue.svg)](https://huggingface.co/7rplus/pagescan-weights)
 
 > ⚠️ **Pre-release.** pagescan is on the path to its first public release (`0.1.0`). The README below describes the *current* state and the *target* release.
 
@@ -12,8 +18,10 @@ Built for batch / server-side / on-prem use cases where Apple's VisionKit and Go
 
 ## Installation
 
+Not on PyPI yet — install from source:
+
 ```bash
-pip install pagescan
+pip install git+https://github.com/7RPlus-GmbH/pagescan
 ```
 
 The pre-trained models (~50 MB) download from Hugging Face Hub on first use and cache locally.
@@ -59,15 +67,23 @@ pagescan photo.jpg --raw     # crop + perspective only, no enhancement
 
 ## How it works
 
-1. **Detection** — YOLO11n trained on real document photos finds the document bbox.
-2. **Segmentation** — HQ-SAM ViT-B, prompted with the bbox, returns a precise mask.
-3. **Quad fit** — convex hull → polygon approximation → 4 corners.
-4. **Orientation** — small CNN classifier + (optional) Tesseract OCR cross-check.
-5. **Perspective transform** — original document aspect ratio preserved (no forced A4 stretch).
-6. **Enhancement** — shadow removal, white balance, contrast stretch, unsharp mask.
-7. **PDF output** — A4 canvas @ 300 DPI by default; configurable.
+1. **Corner detection** — FastViT-SA24 heatmap regression finds the four corners,
+   with LCNet100 as a second backbone when it fails. This is what `ScanConfig()`
+   runs today.
+2. **Quad fit and repair** — sanity checks on the predicted quad.
+3. **Orientation** — small CNN classifier + (optional) Tesseract OCR cross-check.
+4. **Perspective transform** — original document aspect ratio preserved (no forced A4 stretch).
+5. **Enhancement** — shadow removal, white balance, contrast stretch, unsharp mask.
+6. **PDF output** — A4 canvas @ 300 DPI by default; configurable.
 
-A traditional contour-based fallback runs if the ML detector finds nothing.
+A traditional contour-based fallback runs if corner detection finds nothing.
+
+**The YOLO11n → HQ-SAM cascade is opt-in**, not the default. On the current
+weights the legacy chain wins on the held-out benchmark (44/50 vs 35/50 at
+IoU ≥ 0.90), runs ~75× faster and fails less catastrophically, so
+`use_cascade` defaults to `False`. Enable it with `ScanConfig(use_cascade=True)`
+and the `[ml]` extras. See [the benchmark](https://7rplus-gmbh.github.io/pagescan/benchmark.html)
+for the numbers behind that choice.
 
 ## Benchmarks
 
@@ -108,7 +124,8 @@ If you need a mobile SDK, Apple's VisionKit and Google's ML Kit are excellent. I
 
 pagescan is developed by [7R+ GmbH](https://7rplus.com) — same team behind [xaitalk](https://xaitalk.com).
 
-Documentation: <https://7rplus-gmbh.github.io/pagescan/> (auto-deployed from `main`). Custom domain (`pagescan.7rplus.com`) coming alongside the 0.1.0 PyPI release.
+Site: <https://pagescan.7rplus.com>
+Documentation: <https://7rplus-gmbh.github.io/pagescan/> (auto-deployed from `main`).
 
 ## Contributing
 

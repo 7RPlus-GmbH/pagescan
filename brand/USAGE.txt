@@ -1,0 +1,40 @@
+pagescan — brand exports (mark 4a, v1.0, Aug 2026)
+7R+ GmbH · MIT
+
+svg/
+  pagescan-mark.svg              ink #16181C, stroke 6.5 — master
+  pagescan-mark-inverse.svg      paper #F7F6F2 — dark surfaces
+  pagescan-mark-accent.svg       second corner in signal #DE4B2E
+  pagescan-mark-currentcolor.svg inherits CSS color — docs/inline use
+  pagescan-lockup.svg            mark + wordmark (needs IBM Plex Sans)
+  pagescan-lockup-inverse.svg    reversed lockup
+  favicon.svg                    16px cut, stroke 9
+  avatar.svg                     inset mark on full-bleed ink
+
+icon/
+  favicon-16.png favicon-32.png favicon-48.png
+  apple-touch-icon-180.png       ink mark on paper, inset
+  mark-256.png mark-512.png      transparent, ink
+  mark-512-inverse.png           transparent, paper
+  avatar-github-512.png          GitHub org/repo avatar
+  avatar-hf-400.png              Hugging Face org avatar
+  avatar-light-512.png           ink mark on paper square
+
+banners/
+  readme-header-light-1280x320.png
+  readme-header-dark-1280x320.png
+  github-social-preview-1280x640.png   (GitHub: Settings > Social preview)
+  og-card-1200x630.png                 (docs og:image)
+  huggingface-model-card-1200x630.png  (model card thumbnail)
+
+Rules
+- Colours: Ink #16181C, Paper #F7F6F2, Signal #DE4B2E, Graphite #7C7E84.
+- Type: IBM Plex Sans Medium 500 at -2% tracking for the wordmark;
+  IBM Plex Mono for code, labels, version numbers.
+- Wordmark is always lowercase, never bold or italic.
+- Clear space = one arm (14/64 of the mark) on all four sides.
+- Minimum size 16px — use favicon.svg / favicon-16.png, not a scaled master.
+- Two opposing corners only. Never four, never rotated, never stretched.
+- Signal red: one accent per view, 24px+ text only (3.8:1 on paper).
+- Copy svg/ icon/ banners/ into brand/ at the repo root, so paths read
+  brand/banners/readme-header-light-1280x320.png. PyPI needs absolute raw URLs.

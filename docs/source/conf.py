@@ -65,6 +65,13 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 # -- HTML output -------------------------------------------------------------
 html_theme = "pydata_sphinx_theme"
 html_static_path = ["_static"]
+
+# The docs carry the same mark as the site. The currentcolor cut inherits the
+# theme's text colour, so it works in both light and dark without a second
+# file; favicon.svg is the 16px cut with its own stroke weight, not a scaled
+# master.
+html_logo = "_static/pagescan-mark.svg"
+html_favicon = "_static/favicon.svg"
 html_css_files = ["custom.css"]
 html_title = f"pagescan {release}"
 

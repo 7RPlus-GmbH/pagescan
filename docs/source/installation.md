@@ -3,8 +3,11 @@
 ## From PyPI (recommended)
 
 ```bash
-pip install pagescan
+pip install git+https://github.com/7RPlus-GmbH/pagescan
 ```
+
+pagescan is not on PyPI yet, so install from the repository. `pip install
+pagescan` will work from the first release.
 
 That installs the core package with all Python dependencies. The pre-trained models (~50 MB total) download automatically from [Hugging Face Hub](https://huggingface.co/7rplus/pagescan-weights) on first use and cache under `~/.cache/huggingface/`.
 
